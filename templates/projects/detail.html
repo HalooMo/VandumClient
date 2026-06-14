@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ project.project_name }}{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="page-header-row">
+        <div>
+            <h1 class="page-title">{{ project.project_name }}</h1>
+            <p class="page-subtitle">{{ project.source_language }} → {{ project.target_language }}</p>
+        </div>
+        <span class="status-badge status-{{ project.status }} status-lg" id="statusBadge">{{ status_label(project.status, detail=true) }}</span>
+    </div>
+</section>
+
+<div class="detail-grid">
+    <div class="glass-card detail-card">
+        <h3>Статус обработки</h3>
+        <div class="progress-ring-container">
+            <svg class="progress-ring" viewBox="0 0 120 120">
+                <circle class="progress-ring-bg" cx="60" cy="60" r="52"/>
+                <circle class="progress-ring-fill" cx="60" cy="60" r="52" id="progressCircle"/>
+            </svg>
+            <div class="progress-label" id="progressLabel">{{ status_label(project.status, detail=true) }}</div>
+        </div>
+        <div class="detail-info" id="detailInfo">
+            {% if project.status == 'uploading' %}
+                <p class="text-muted">Файл загружается на сервер обработки…</p>
+            {% endif %}
+            {% if project.job_id %}
+                <p>Job ID: <code>{{ project.job_id }}</code></p>
+            {% endif %}
+            {% if project.error_message %}
+                <p class="text-error">Ошибка: {{ project.error_message }}</p>
+            {% endif %}
+        </div>
+        {% if project.status == 'done' %}
+            <a href="{{ url_for('projects.download', project_id=project.id) }}" class="btn btn-primary btn-block btn-glow">
+                ⬇ Скачать MP4
+            </a>
+            <a href="{{ url_for('projects.edit', project_id=project.id) }}" class="btn btn-ghost btn-block" style="margin-top:0.5rem">
+                ✎ Редактировать и перезапустить
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="glass-card detail-card">
+        <h3>Детали</h3>
+        <dl class="detail-list">
+            <dt>Файл</dt><dd>{{ project.original_filename or '—' }}</dd>
+            <dt>Создан</dt><dd>{{ project.created_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+            {% if project.finished_at %}
+                <dt>Завершён</dt><dd>{{ project.finished_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+            {% endif %}
+            {% if project.voice_gender %}
+                <dt>Пол голоса</dt><dd>{{ project.voice_gender }}</dd>
+            {% endif %}
+            {% if project.voice_age %}
+                <dt>Возраст</dt><dd>{{ project.voice_age }}</dd>
+            {% endif %}
+            {% if project.voice_prompt %}
+                <dt>Промпт</dt><dd><code>{{ project.voice_prompt }}</code></dd>
+            {% endif %}
+            {% if voice_opts.get('voice_design_temperature') %}
+                <dt>TTS temp</dt><dd>{{ voice_opts.voice_design_temperature }}</dd>
+            {% endif %}
+            {% if voice_opts.get('voice_sample_male') %}
+                <dt>Клон ♂</dt><dd>{{ voice_opts.voice_sample_male }}{% if voice_opts.get('voice_sample_male_ages') %} ({{ voice_opts.voice_sample_male_ages }}){% endif %}</dd>
+            {% endif %}
+            {% if voice_opts.get('voice_sample_female') %}
+                <dt>Клон ♀</dt><dd>{{ voice_opts.voice_sample_female }}{% if voice_opts.get('voice_sample_female_ages') %} ({{ voice_opts.voice_sample_female_ages }}){% endif %}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+
+<a href="{{ url_for('projects.list_projects') }}" class="back-link">← Все проекты</a>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PROJECT_ID = {{ project.id }};
+const INITIAL_STATUS = "{{ project.status }}";
+</script>
+<script src="{{ url_for('static', filename='js/project-status.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% block title %}Документация API{% endblock %}
+
+{% block head %}
+<style>
+.docs-layout { max-width: 900px; margin: 0 auto 4rem; padding: 0 2rem; }
+.docs-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+.docs-nav a {
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-decoration: none;
+}
+.docs-nav a:hover { color: var(--cyan); border-color: var(--border-glow); }
+.docs-section { margin-bottom: 2.5rem; scroll-margin-top: 5rem; }
+.docs-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+.docs-section p, .docs-section li { color: var(--text-muted); line-height: 1.7; }
+.docs-section ul { padding-left: 1.25rem; margin: 0.75rem 0; }
+.docs-section li { margin-bottom: 0.35rem; }
+.docs-code {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    margin: 1rem 0;
+    color: #c8d0e0;
+    white-space: pre;
+}
+.docs-code .comment { color: #6a7a90; font-style: italic; }
+.docs-py-block { margin-bottom: 1.75rem; }
+.docs-py-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.03em;
+}
+.docs-py .kw { color: #c792ea; }
+.docs-py .fn { color: #82aaff; }
+.docs-py .str { color: #c3e88d; }
+.docs-py .cm { color: #63708a; font-style: italic; }
+.docs-py .num { color: #f78c6c; }
+.docs-py .var { color: #eeffff; }
+.docs-py .op { color: #89ddff; }
+.docs-endpoint {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 0.75rem 0;
+}
+.docs-method {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    background: rgba(0,240,255,0.12);
+    color: var(--cyan);
+}
+.docs-method.post { background: rgba(123,47,247,0.15); color: #b88aff; }
+.docs-path { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+.docs-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+.docs-table th, .docs-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+.docs-table th { color: var(--text-muted); font-weight: 500; }
+.docs-table code { font-size: 0.8rem; }
+.docs-callout {
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--cyan);
+    background: rgba(0,240,255,0.05);
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1 class="page-title">Документация <span class="gradient-text">API</span></h1>
+    <p class="page-subtitle">REST API для AI-дубляжа через Vandum · базовый URL: <code>{{ api_base_url }}</code></p>
+</section>
+
+<div class="docs-layout">
+    <nav class="docs-nav">
+        <a href="#auth">Аутентификация</a>
+        <a href="#flow">Схема работы</a>
+        <a href="#dub">Запуск дубляжа</a>
+        <a href="#params">Параметры</a>
+        <a href="#clone">Клон голоса</a>
+        <a href="#jobs">Статус и список</a>
+        <a href="#download">Скачивание</a>
+        <a href="#errors">Коды ошибок</a>
+        <a href="#python">Python</a>
+        <a href="#keys">Ключи</a>
+    </nav>
+
+    <section class="docs-section" id="auth">
+        <h2>1. Аутентификация</h2>
+        <p>Получите персональный ключ в разделе <a href="{{ url_for('api_portal.index') }}">API</a> (требуется аккаунт и подтверждённый email).</p>
+        <p>Передавайте ключ в каждом запросе:</p>
+        <div class="docs-code">X-API-Key: vdm_ваш_ключ</div>
+        <p>Альтернатива: <code>Authorization: Bearer vdm_ваш_ключ</code></p>
+        <div class="docs-callout">
+            Vandum проверяет ваш ключ и проксирует запрос на inference-сервер SpeechLab.
+            Системный ключ сервера вам недоступен.
+        </div>
+    </section>
+
+    <section class="docs-section" id="flow">
+        <h2>2. Схема работы</h2>
+        <ol>
+            <li><code>POST /api/v1/dub</code> — отправить видео и параметры, получить job id</li>
+            <li><code>GET /api/v1/jobs/&lt;id&gt;</code> — опрашивать статус (queued → running → done)</li>
+            <li><code>GET /api/v1/jobs/&lt;id&gt;/download</code> — скачать готовый MP4</li>
+        </ol>
+        <div class="docs-endpoint">
+            <span class="docs-method">GET</span>
+            <span class="docs-path">/health</span>
+            <span style="color:var(--text-muted);font-size:0.85rem">— без ключа</span>
+        </div>
+    </section>
+
+    <section class="docs-section" id="dub">
+        <h2>3. Запуск дубляжа</h2>
+        <div class="docs-endpoint">
+            <span class="docs-method post">POST</span>
+            <span class="docs-path">/api/v1/dub</span>
+        </div>
+        <p><strong>multipart/form-data</strong> — загрузка файла (основной способ):</p>
+        <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
+  -H "X-API-Key: vdm_ваш_ключ" \
+  -F "project_name=demo" \
+  -F "source_language=en" \
+  -F "target_language=ru" \
+  -F "voice_gender=female" \
+  -F "voice_age=32" \
+  -F "video=@/path/to/video.mp4"</div>
+        <p>Обязательные поля: <code>project_name</code>, <code>source_language</code>, <code>target_language</code>, <code>video</code>.</p>
+        <p>Форматы: MP4, MKV, MOV, AVI, WebM, WAV, MP3, M4A. Максимум 500 МБ.</p>
+        <p>Ответ при успехе: <strong>HTTP 202</strong> с полем <code>id</code> — сохраните его для опроса.</p>
+    </section>
+
+    <section class="docs-section" id="params">
+        <h2>4. Опциональные параметры</h2>
+        <table class="docs-table glass-card">
+            <tr><th>Параметр</th><th>Описание</th></tr>
+            <tr><td><code>voice_prompt</code></td><td>Промпт VoiceDesign для голоса</td></tr>
+            <tr><td><code>voice_gender</code></td><td>male | female</td></tr>
+            <tr><td><code>voice_age</code></td><td>Возраст голоса (5–90)</td></tr>
+            <tr><td><code>voice_design_temperature</code></td><td>Креативность TTS (0–1)</td></tr>
+            <tr><td><code>voice_design_by_key</code></td><td>JSON: промпт по полу и возрастной группе</td></tr>
+            <tr><td><code>dub_volume_percent</code></td><td>Громкость дубляжа, % (по умолчанию 100)</td></tr>
+            <tr><td><code>original_audio_ratio</code></td><td>Доля оригинала (0–1, по умолчанию 0.3)</td></tr>
+        </table>
+        <p>Плейсхолдеры в <code>voice_prompt</code>: <code>{lang}</code>, <code>{gender_hint}</code>, <code>{age_hint}</code></p>
+    </section>
+
+    <section class="docs-section" id="clone">
+        <h2>5. Клонирование голоса из сэмпла</h2>
+        <p>Короткий аудио-сэмпл (MP3/WAV, до 10 МБ, 3–10 сек) задаёт голос для выбранных возрастных групп.
+           Можно комбинировать: сэмпл для male, VoiceDesign-промпт для female.</p>
+        <table class="docs-table glass-card">
+            <tr><th>Поле multipart</th><th>Описание</th></tr>
+            <tr><td><code>voice_sample_male</code></td><td>Файл сэмпла мужского голоса</td></tr>
+            <tr><td><code>voice_sample_female</code></td><td>Файл сэмпла женского голоса</td></tr>
+            <tr><td><code>voice_sample_male_ages</code></td><td>child,teenager,mature,elderly (через запятую)</td></tr>
+            <tr><td><code>voice_sample_female_ages</code></td><td>То же для женского пола</td></tr>
+            <tr><td><code>voice_sample_male_ref_text</code></td><td>Точный текст из мужского сэмпла (рекомендуется)</td></tr>
+            <tr><td><code>voice_sample_female_ref_text</code></td><td>Точный текст из женского сэмпла</td></tr>
+        </table>
+        <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
+  -H "X-API-Key: vdm_ваш_ключ" \
+  -F "project_name=demo" \
+  -F "source_language=en" \
+  -F "target_language=ru" \
+  -F "voice_sample_male=@voice_male.wav" \
+  -F "voice_sample_male_ages=mature,elderly" \
+  -F "voice_sample_male_ref_text=Hello, this is my reference voice." \
+  -F "video=@video.mp4"</div>
+        <div class="docs-callout">
+            Через прокси Vandum недоступна передача <code>video_path</code> и серверных путей в JSON —
+            только загрузка файлов через multipart.
+        </div>
+    </section>
+
+    <section class="docs-section" id="jobs">
+        <h2>6. Статус и список задач</h2>
+        <div class="docs-endpoint">
+            <span class="docs-method">GET</span>
+            <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;</span>
+        </div>
+        <p>Статусы: <code>queued</code>, <code>running</code>, <code>done</code>, <code>error</code>.</p>
+        <div class="docs-code">curl -H "X-API-Key: vdm_ваш_ключ" \
+  "{{ api_base_url }}/api/v1/jobs/JOB_ID"</div>
+        <div class="docs-endpoint">
+            <span class="docs-method">GET</span>
+            <span class="docs-path">/api/v1/jobs</span>
+        </div>
+        <p>Список ваших задач (до 50 последних). Чужие задачи недоступны.</p>
+    </section>
+
+    <section class="docs-section" id="download">
+        <h2>7. Скачивание результата</h2>
+        <div class="docs-endpoint">
+            <span class="docs-method">GET</span>
+            <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;/download</span>
+        </div>
+        <p>Доступно только при <code>status = done</code>.</p>
+        <div class="docs-code">curl -H "X-API-Key: vdm_ваш_ключ" \
+  -o demo_dubbed.mp4 \
+  "{{ api_base_url }}/api/v1/jobs/JOB_ID/download"</div>
+    </section>
+
+    <section class="docs-section" id="errors">
+        <h2>8. Коды ответов</h2>
+        <table class="docs-table glass-card">
+            <tr><th>Код</th><th>Значение</th></tr>
+            <tr><td>200</td><td>OK — GET, скачивание</td></tr>
+            <tr><td>202</td><td>Accepted — задача создана</td></tr>
+            <tr><td>401</td><td>Неверный или отсутствующий API key</td></tr>
+            <tr><td>404</td><td>Задача не найдена (или не ваша)</td></tr>
+            <tr><td>409</td><td>Результат ещё не готов</td></tr>
+            <tr><td>413</td><td>Файл слишком большой</td></tr>
+            <tr><td>503</td><td>GPU занят другой задачей</td></tr>
+        </table>
+    </section>
+
+    <section class="docs-section" id="python">
+        <h2>9. Пример на Python</h2>
+        <p>Полный сценарий: запуск дубляжа с клонированием голоса, ожидание и скачивание MP4.</p>
+
+        <div class="docs-py-block">
+            <div class="docs-py-label">Подготовка</div>
+            <pre class="docs-code docs-py"><code><span class="kw">import</span> time
+<span class="kw">import</span> requests
+
+BASE = <span class="str">"{{ api_base_url }}"</span>
+HEADERS = {<span class="str">"X-API-Key"</span>: <span class="str">"vdm_ваш_ключ"</span>}</code></pre>
+        </div>
+
+        <div class="docs-py-block">
+            <div class="docs-py-label">Шаг 1 — Запуск дубляжа</div>
+            <pre class="docs-code docs-py"><code><span class="kw">with</span> <span class="fn">open</span>(<span class="str">"video.mp4"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> video, \
+     <span class="fn">open</span>(<span class="str">"voice.wav"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> sample:
+
+    r = requests.<span class="fn">post</span>(
+        <span class="str">f"{BASE}/api/v1/dub"</span>,
+        headers=HEADERS,
+        data={
+            <span class="str">"project_name"</span>: <span class="str">"demo"</span>,
+            <span class="str">"source_language"</span>: <span class="str">"en"</span>,
+            <span class="str">"target_language"</span>: <span class="str">"ru"</span>,
+            <span class="str">"voice_sample_male_ages"</span>: <span class="str">"mature,elderly"</span>,
+            <span class="str">"voice_sample_male_ref_text"</span>: <span class="str">"Hello, this is my reference voice."</span>,
+            <span class="str">"voice_design_temperature"</span>: <span class="str">"0.72"</span>,
+        },
+        files={
+            <span class="str">"video"</span>: (<span class="str">"video.mp4"</span>, video, <span class="str">"video/mp4"</span>),
+            <span class="str">"voice_sample_male"</span>: (<span class="str">"voice.wav"</span>, sample, <span class="str">"audio/wav"</span>),
+        },
+        timeout=<span class="num">600</span>,
+    )
+
+r.<span class="fn">raise_for_status</span>()
+job_id = r.<span class="fn">json</span>()[<span class="str">"id"</span>]
+<span class="fn">print</span>(<span class="str">"job:"</span>, job_id)</code></pre>
+        </div>
+
+        <div class="docs-py-block">
+            <div class="docs-py-label">Шаг 2 — Ожидание завершения</div>
+            <pre class="docs-code docs-py"><code><span class="kw">while</span> <span class="kw">True</span>:
+    st = requests.<span class="fn">get</span>(
+        <span class="str">f"{BASE}/api/v1/jobs/{job_id}"</span>,
+        headers=HEADERS,
+        timeout=<span class="num">60</span>,
+    )
+    st.<span class="fn">raise_for_status</span>()
+    data = st.<span class="fn">json</span>()
+
+    <span class="fn">print</span>(<span class="str">"status:"</span>, data[<span class="str">"status"</span>])
+
+    <span class="kw">if</span> data[<span class="str">"status"</span>] == <span class="str">"done"</span>:
+        <span class="kw">break</span>
+    <span class="kw">if</span> data[<span class="str">"status"</span>] == <span class="str">"error"</span>:
+        <span class="kw">raise</span> <span class="fn">RuntimeError</span>(data.get(<span class="str">"error"</span>))
+
+    time.<span class="fn">sleep</span>(<span class="num">60</span>)</code></pre>
+        </div>
+
+        <div class="docs-py-block">
+            <div class="docs-py-label">Шаг 3 — Скачивание MP4</div>
+            <pre class="docs-code docs-py"><code>out = requests.<span class="fn">get</span>(
+    <span class="str">f"{BASE}/api/v1/jobs/{job_id}/download"</span>,
+    headers=HEADERS,
+    stream=<span class="kw">True</span>,
+    timeout=<span class="num">600</span>,
+)
+out.<span class="fn">raise_for_status</span>()
+
+<span class="kw">with</span> <span class="fn">open</span>(<span class="str">"demo_dubbed.mp4"</span>, <span class="str">"wb"</span>) <span class="kw">as</span> f:
+    <span class="kw">for</span> chunk <span class="kw">in</span> out.<span class="fn">iter_content</span>(chunk_size=<span class="num">1024</span> * <span class="num">1024</span>):
+        <span class="kw">if</span> chunk:
+            f.<span class="fn">write</span>(chunk)
+
+<span class="fn">print</span>(<span class="str">"saved: demo_dubbed.mp4"</span>)</code></pre>
+        </div>
+    </section>
+
+    <section class="docs-section" id="keys">
+        <h2>10. Управление ключами</h2>
+        <p>Ключи создаются в личном кабинете. Каждый ключ показывается один раз при генерации.</p>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('api_portal.index') }}" class="btn btn-primary btn-glow">Перейти к API ключам</a>
+        {% else %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-glow">Создать аккаунт</a>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

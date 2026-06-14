@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Создать проект{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1 class="page-title">Новый <span class="gradient-text">проект</span></h1>
+    <p class="page-subtitle">Пошаговый мастер создания дубляжа</p>
+</section>
+
+<div class="wizard-layout">
+    <div class="wizard-steps">
+        <div class="wizard-step-item active" data-step="0"><div class="wizard-step-num">1</div><div><div class="wizard-step-label">Файл</div></div></div>
+        <div class="wizard-step-item" data-step="1"><div class="wizard-step-num">2</div><div><div class="wizard-step-label">Языки</div></div></div>
+        <div class="wizard-step-item" data-step="2"><div class="wizard-step-num">3</div><div><div class="wizard-step-label">Голос</div></div></div>
+        <div class="wizard-step-item" data-step="3"><div class="wizard-step-num">4</div><div><div class="wizard-step-label">Клон</div></div></div>
+        <div class="wizard-step-item" data-step="4"><div class="wizard-step-num">5</div><div><div class="wizard-step-label">Запуск</div></div></div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="wizardForm" class="glass-card-holo">
+        {{ form.hidden_tag() }}
+        {% set readonly_name = false %}
+        {% set male_ages = [] %}
+        {% set female_ages = [] %}
+        {% include "projects/_wizard_panels.html" %}
+        <div class="wizard-nav">
+            <button type="button" class="btn btn-ghost" id="wizardPrev" disabled>← Назад</button>
+            <button type="button" class="btn btn-primary btn-glow" id="wizardNext">Далее →</button>
+            {{ form.submit(class="btn btn-primary btn-glow", id="wizardSubmit", style="display:none") }}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/create-wizard.js') }}"></script>
+{% endblock %}

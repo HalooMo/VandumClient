@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Мои проекты{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="page-header-row">
+        <div>
+            <h1 class="page-title">Мои <span class="gradient-text">проекты</span></h1>
+            <p class="page-subtitle">{{ projects|length }} проект(ов)</p>
+        </div>
+        <a href="{{ url_for('projects.create') }}" class="btn btn-primary btn-glow">+ Создать</a>
+    </div>
+</section>
+
+{% if projects %}
+    {% if active_projects %}
+    <section class="projects-section">
+        <h2 class="projects-section-title">Выполняются</h2>
+        <div class="projects-grid">
+            {% for p in active_projects %}
+            <div class="project-card glass-card" data-project-id="{{ p.id }}">
+                <div class="project-card-header">
+                    <h3><a href="{{ url_for('projects.detail', project_id=p.id) }}">{{ p.project_name }}</a></h3>
+                    <span class="status-badge status-{{ p.status }}" data-status-badge>{{ status_label(p.status) }}</span>
+                </div>
+                <div class="project-meta">
+                    <span>{{ p.source_language }} → {{ p.target_language }}</span>
+                    <span>{{ p.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                </div>
+                {% if p.original_filename %}
+                    <div class="project-file">{{ p.original_filename }}</div>
+                {% endif %}
+                <div class="project-actions">
+                    <a href="{{ url_for('projects.detail', project_id=p.id) }}" class="btn btn-ghost btn-sm">Открыть</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if completed_projects %}
+    <section class="projects-section">
+        <h2 class="projects-section-title">Готовые</h2>
+        <div class="projects-grid">
+            {% for p in completed_projects %}
+            <div class="project-card glass-card project-card-done" data-project-id="{{ p.id }}">
+                <div class="project-card-header">
+                    <h3>{{ p.project_name }}</h3>
+                    <span class="status-badge status-{{ p.status }}" data-status-badge>{{ status_label(p.status) }}</span>
+                </div>
+                <div class="project-meta">
+                    <span>{{ p.source_language }} → {{ p.target_language }}</span>
+                    <span>{{ p.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                </div>
+                {% if p.original_filename %}
+                    <div class="project-file">{{ p.original_filename }}</div>
+                {% endif %}
+                <div class="project-actions">
+                    {% if p.status == 'done' %}
+                        <a href="{{ url_for('projects.detail', project_id=p.id) }}" class="btn btn-ghost btn-sm">Просмотр</a>
+                        <a href="{{ url_for('projects.edit', project_id=p.id) }}" class="btn btn-ghost btn-sm">Редактировать</a>
+                        <a href="{{ url_for('projects.download', project_id=p.id) }}" class="btn btn-primary btn-sm btn-glow">Скачать</a>
+                    {% else %}
+                        <a href="{{ url_for('projects.detail', project_id=p.id) }}" class="btn btn-ghost btn-sm">Подробнее</a>
+                        <a href="{{ url_for('projects.edit', project_id=p.id) }}" class="btn btn-ghost btn-sm">Перезапустить</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+{% else %}
+<div class="empty-state glass-card">
+    <div class="empty-icon">🎬</div>
+    <h2>Пока нет проектов</h2>
+    <p>Создайте первый проект дубляжа — загрузите видео и выберите языки.</p>
+    <a href="{{ url_for('projects.create') }}" class="btn btn-primary btn-glow">Создать проект</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if active_projects %}
+<script src="{{ url_for('static', filename='js/projects-list.js') }}"></script>
+{% endif %}
+{% endblock %}

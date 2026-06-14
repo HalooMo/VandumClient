@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Редактировать {{ project.project_name }}{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1 class="page-title">Редактировать <span class="gradient-text">{{ project.project_name }}</span></h1>
+    <p class="page-subtitle">Измените настройки и загрузите новые файлы</p>
+</section>
+
+{% set male_ages = (voice_opts.get('voice_sample_male_ages') or '').split(',') %}
+{% set female_ages = (voice_opts.get('voice_sample_female_ages') or '').split(',') %}
+
+<div class="wizard-layout">
+    <div class="wizard-steps">
+        <div class="wizard-step-item active" data-step="0"><div class="wizard-step-num">1</div><div><div class="wizard-step-label">Файл</div></div></div>
+        <div class="wizard-step-item" data-step="1"><div class="wizard-step-num">2</div><div><div class="wizard-step-label">Языки</div></div></div>
+        <div class="wizard-step-item" data-step="2"><div class="wizard-step-num">3</div><div><div class="wizard-step-label">Голос</div></div></div>
+        <div class="wizard-step-item" data-step="3"><div class="wizard-step-num">4</div><div><div class="wizard-step-label">Клон</div></div></div>
+        <div class="wizard-step-item" data-step="4"><div class="wizard-step-num">5</div><div><div class="wizard-step-label">Запуск</div></div></div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="wizardForm" class="glass-card-holo">
+        {{ form.hidden_tag() }}
+        {% set readonly_name = true %}
+        {% include "projects/_wizard_panels.html" %}
+        <div class="wizard-nav">
+            <button type="button" class="btn btn-ghost" id="wizardPrev" disabled>← Назад</button>
+            <button type="button" class="btn btn-primary btn-glow" id="wizardNext">Далее →</button>
+            <button type="submit" class="btn btn-primary btn-glow" id="wizardSubmit" style="display:none">Перезапустить дубляж</button>
+        </div>
+    </form>
+</div>
+<a href="{{ url_for('projects.detail', project_id=project.id) }}" class="back-link">← К проекту</a>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/create-wizard.js') }}"></script>
+{% endblock %}

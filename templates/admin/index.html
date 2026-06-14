@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Администрирование{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1 class="page-title">Админ <span class="gradient-text">панель</span></h1>
+</section>
+
+<div class="stats-row">
+    <div class="stat-card glass-card">
+        <div class="stat-value">{{ stats.total_users }}</div>
+        <div class="stat-label">Пользователей</div>
+    </div>
+    <div class="stat-card glass-card">
+        <div class="stat-value">{{ stats.verified_users }}</div>
+        <div class="stat-label">Подтверждённых</div>
+    </div>
+    <div class="stat-card glass-card">
+        <div class="stat-value">{{ stats.total_projects }}</div>
+        <div class="stat-label">Проектов</div>
+    </div>
+    <div class="stat-card glass-card">
+        <div class="stat-value">{{ stats.running_projects }}</div>
+        <div class="stat-label">В обработке</div>
+    </div>
+</div>
+
+<div class="glass-card admin-table-wrap">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Имя</th>
+                <th>Статус</th>
+                <th>Роль</th>
+                <th>Регистрация</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.display_name }}</td>
+                <td>
+                    {% if u.email_verified %}
+                        <span class="tag tag-green">verified</span>
+                    {% else %}
+                        <span class="tag tag-yellow">pending</span>
+                    {% endif %}
+                    {% if not u.is_active_user %}
+                        <span class="tag tag-red">blocked</span>
+                    {% endif %}
+                </td>
+                <td>{% if u.is_admin %}<span class="tag tag-purple">admin</span>{% else %}user{% endif %}</td>
+                <td>{{ u.created_at.strftime('%d.%m.%Y') }}</td>
+                <td class="actions-cell">
+                    <a href="{{ url_for('admin.edit_user', user_id=u.id) }}" class="btn btn-ghost btn-sm">Изменить</a>
+                    {% if u.id != current_user.id %}
+                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}" class="inline-form"
+                          onsubmit="return confirm('Удалить пользователя?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

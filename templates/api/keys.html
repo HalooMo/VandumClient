@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}API ключи{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="page-header-row">
+        <div>
+            <h1 class="page-title">API <span class="gradient-text">ключи</span></h1>
+            <p class="page-subtitle">Прокси-доступ к SpeechLab через Vandum · до {{ max_keys }} ключей</p>
+        </div>
+        <a href="{{ url_for('docs.index') }}" class="btn btn-ghost">Документация →</a>
+    </div>
+</section>
+
+<div class="api-portal-grid api-portal-single">
+    <div class="glass-card-holo api-keys-card">
+        {% if new_key %}
+        <div class="api-new-key-banner" id="newKeyBanner">
+            <h3>Новый ключ — скопируйте сейчас</h3>
+            <p>Ключ больше не будет показан после закрытия страницы.</p>
+            <div class="api-key-display">
+                <code id="newKeyValue">{{ new_key }}</code>
+                <button type="button" class="btn btn-primary btn-sm btn-glow" id="copyKeyBtn">Копировать</button>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if current_user.email_verified %}
+        <form method="POST" action="{{ url_for('api_portal.create_key') }}" class="api-key-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label">Название ключа</label>
+                <input type="text" name="name" class="form-input" placeholder="Production, Dev, CI…" maxlength="64">
+            </div>
+            <button type="submit" class="btn btn-primary btn-glow" {% if keys|selectattr('is_active')|list|length >= max_keys %}disabled{% endif %}>
+                + Сгенерировать ключ
+            </button>
+        </form>
+        {% else %}
+        <div class="api-verify-notice">
+            <p>Подтвердите email, чтобы создавать API-ключи.</p>
+            <a href="{{ url_for('auth.verify_pending') }}" class="btn btn-ghost btn-sm">Подтвердить email</a>
+        </div>
+        {% endif %}
+
+        <h3 class="api-keys-title">Ваши ключи</h3>
+        {% if keys %}
+        <div class="api-keys-list">
+            {% for k in keys %}
+            <div class="api-key-row {% if not k.is_active %}revoked{% endif %}">
+                <div>
+                    <strong>{{ k.name }}</strong>
+                    <code class="api-key-prefix">{{ k.key_prefix }}</code>
+                </div>
+                <div class="api-key-meta">
+                    <span>{{ k.created_at.strftime('%d.%m.%Y') }}</span>
+                    {% if k.last_used_at %}
+                        <span>исп. {{ k.last_used_at.strftime('%d.%m.%Y') }}</span>
+                    {% endif %}
+                    {% if k.is_active %}
+                        <form method="POST" action="{{ url_for('api_portal.revoke_key', key_id=k.id) }}" class="inline-form"
+                              onsubmit="return confirm('Отозвать ключ?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-ghost btn-sm">Отозвать</button>
+                        </form>
+                    {% else %}
+                        <span class="tag tag-red">отозван</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="api-empty">Ключей пока нет. Сгенерируйте первый ключ для работы с API.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/api-keys.js') }}"></script>
+{% endblock %}

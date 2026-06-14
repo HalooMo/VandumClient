@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Аналитика{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1 class="page-title">Дэшборд <span class="gradient-text">аналитики</span></h1>
+    <p class="page-subtitle">Статистика использования сервиса</p>
+</section>
+
+<div class="period-tabs">
+    <button class="period-tab" data-period="day">По дням</button>
+    <button class="period-tab active" data-period="month">По месяцам</button>
+    <button class="period-tab" data-period="year">По годам</button>
+</div>
+
+<div class="stats-row" id="totalsRow">
+    <div class="stat-card glass-card">
+        <div class="stat-value" id="totalUsers">—</div>
+        <div class="stat-label">Всего пользователей</div>
+    </div>
+    <div class="stat-card glass-card">
+        <div class="stat-value" id="totalVerified">—</div>
+        <div class="stat-label">Подтверждённых</div>
+    </div>
+    <div class="stat-card glass-card">
+        <div class="stat-value" id="totalProjects">—</div>
+        <div class="stat-label">Всего проектов</div>
+    </div>
+    <div class="stat-card glass-card">
+        <div class="stat-value" id="totalDone">—</div>
+        <div class="stat-label">Завершённых</div>
+    </div>
+</div>
+
+<div class="charts-grid">
+    <div class="glass-card chart-card">
+        <h3>Активные пользователи</h3>
+        <canvas id="activeChart"></canvas>
+    </div>
+    <div class="glass-card chart-card">
+        <h3>Регистрации</h3>
+        <canvas id="regChart"></canvas>
+    </div>
+    <div class="glass-card chart-card chart-wide">
+        <h3>Проекты</h3>
+        <canvas id="projChart"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

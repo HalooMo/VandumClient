@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}О сервисе{% endblock %}
+
+{% block content %}
+<section class="about-hero">
+    <div class="about-hero-content" data-animate="fade-up">
+        <span class="section-tag">Documentation</span>
+        <h1 class="page-title" style="font-size:3rem;">О <span class="gradient-text">Vandum</span></h1>
+        <p class="about-hero-sub">Клиентская платформа для SpeechLab — AI-движка многоголосого закадрового дубляжа на GPU.</p>
+    </div>
+    <div class="about-hero-stats" data-animate="fade-up" data-delay="100">
+        <div class="about-stat"><strong>{{ stats.users }}</strong><span>Users</span></div>
+        <div class="about-stat"><strong>{{ stats.projects_done }}</strong><span>Dubbed</span></div>
+        <div class="about-stat"><strong>12+</strong><span>Languages</span></div>
+        <div class="about-stat"><strong>500</strong><span>MB max</span></div>
+    </div>
+</section>
+
+<section class="about-grid">
+    <div class="about-card glass-card-holo tilt-card" data-animate="fade-up">
+        <div class="about-card-icon">⚡</div>
+        <h2>SpeechLab Engine</h2>
+        <p>GPU-пайплайн на базе Whisper (ASR), LLM-перевода и Qwen3-TTS VoiceDesign. Одна задача на сервер — полная мощность GPU.</p>
+    </div>
+    <div class="about-card glass-card-holo tilt-card" data-animate="fade-up" data-delay="80">
+        <div class="about-card-icon">🎭</div>
+        <h2>Multi-Speaker Casting</h2>
+        <p>AI определяет спикеров через diarization и назначает уникальный голос каждому. Автоматически или через промпт.</p>
+    </div>
+    <div class="about-card glass-card-holo tilt-card" data-animate="fade-up" data-delay="160">
+        <div class="about-card-icon">🔧</div>
+        <h2>Гибкая настройка</h2>
+        <p>voice_gender, voice_age, voice_prompt, dub_volume_percent, original_audio_ratio — полный контроль через API и UI.</p>
+    </div>
+</section>
+
+<section class="section-block" style="padding-top:2rem;">
+    <div class="section-head" data-animate="fade-up">
+        <span class="section-tag">API Reference</span>
+        <h2 class="section-title-lg">Эндпоинты <span class="gradient-text">SpeechLab</span></h2>
+    </div>
+    <div class="api-table glass-card-holo" data-animate="fade-up">
+        {% set endpoints = [
+            ('GET', '/health', 'Проверка сервера (без ключа)', '200 OK'),
+            ('POST', '/api/v1/dub', 'Создать задачу дубляжа', '202 Accepted'),
+            ('GET', '/api/v1/jobs', 'Список последних 50 задач', '200 OK'),
+            ('GET', '/api/v1/jobs/{id}', 'Статус задачи', '200 OK'),
+            ('GET', '/api/v1/jobs/{id}/download', 'Скачать MP4', '200 OK'),
+        ] %}
+        {% for method, path, desc, resp in endpoints %}
+        <div class="api-row">
+            <span class="api-method api-{{ method|lower }}">{{ method }}</span>
+            <code class="api-path">{{ path }}</code>
+            <span class="api-desc">{{ desc }}</span>
+            <span class="api-resp">{{ resp }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="section-block">
+    <div class="section-head" data-animate="fade-up">
+        <span class="section-tag">Architecture</span>
+        <h2 class="section-title-lg">Архитектура <span class="gradient-text">пайплайна</span></h2>
+    </div>
+    <div class="arch-flow" data-animate="fade-up">
+        <div class="arch-node">📹 Upload</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">🎙 Whisper ASR</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">👥 Diarization</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">🌐 LLM Translate</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">🔊 Qwen3-TTS</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">🎬 MP4 Export</div>
+    </div>
+</section>
+
+<div class="about-cta" style="padding-bottom:5rem;">
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('projects.create') }}" class="btn btn-primary btn-xl btn-glow magnetic">▶ Создать проект</a>
+    {% else %}
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-xl btn-glow magnetic">Начать работу</a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tilt-card').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = `perspective(600px) rotateY(${x*8}deg) rotateX(${-y*8}deg)`;
+    });
+    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,146 @@
+        <div class="wizard-panel active" data-panel="0">
+            <h3 class="form-section-title">Шаг 1 — {% if readonly_name|default(false) %}Новый {% endif %}медиафайл</h3>
+            <div class="form-group">
+                {{ form.project_name.label(class="form-label") }}
+                {% if readonly_name|default(false) %}
+                    {{ form.project_name(class="form-input", readonly=true, id="wProjectName") }}
+                    <span class="form-hint">Имя проекта нельзя изменить</span>
+                {% else %}
+                    {{ form.project_name(class="form-input", placeholder="my_film", id="wProjectName") }}
+                    {% for e in form.project_name.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
+                    <span class="form-hint">Только a-z, 0-9, _ и -</span>
+                {% endif %}
+            </div>
+            <div class="upload-zone" id="uploadZone">
+                <input type="file" name="video" id="videoInput" accept=".mp4,.mkv,.mov,.avi,.webm,.wav,.mp3,.m4a" required>
+                <div class="upload-content">
+                    <div class="upload-icon">🎬</div>
+                    <p>Перетащите файл или <span class="upload-link">выберите</span></p>
+                    <p class="upload-hint">MP4, MKV, MOV, AVI, WebM, WAV, MP3, M4A — до 500 МБ</p>
+                </div>
+                <div class="upload-preview" id="uploadPreview" hidden>
+                    <span id="fileName"></span>
+                    <span id="fileSize" class="upload-size"></span>
+                    <button type="button" class="upload-clear" id="clearFile">×</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="wizard-panel" data-panel="1">
+            <h3 class="form-section-title">Шаг 2 — Выберите языки</h3>
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    {{ form.source_language.label(class="form-label") }}
+                    {{ form.source_language(class="form-input form-select", id="wSourceLang") }}
+                </div>
+                <div class="form-group">
+                    {{ form.target_language.label(class="form-label") }}
+                    {{ form.target_language(class="form-input form-select", id="wTargetLang") }}
+                </div>
+            </div>
+            <div class="lang-preview" id="wizardLangPreview">
+                <div class="lang-preview-line source" id="wPreviewSource">—</div>
+                <div class="lang-preview-arrow">↓ AI Translate</div>
+                <div class="lang-preview-line target" id="wPreviewTarget">—</div>
+            </div>
+        </div>
+
+        <div class="wizard-panel" data-panel="2">
+            <h3 class="form-section-title">Шаг 3 — VoiceDesign <span class="form-section-hint">(опционально)</span></h3>
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    {{ form.voice_gender.label(class="form-label") }}
+                    {{ form.voice_gender(class="form-input form-select", id="wGender") }}
+                </div>
+                <div class="form-group">
+                    {{ form.voice_age.label(class="form-label") }}
+                    {{ form.voice_age(class="form-input", placeholder="32", id="wAge") }}
+                </div>
+            </div>
+            <div class="form-group">
+                {{ form.voice_prompt.label(class="form-label") }}
+                {{ form.voice_prompt(class="form-input form-textarea", rows=2, id="wPrompt") }}
+                <span class="form-hint">Плейсхолдеры: {lang}, {gender_hint}, {age_hint}</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Креативность TTS: <span id="wTempLabel">{{ form.voice_design_temperature.data or 0.72 }}</span></label>
+                {{ form.voice_design_temperature(class="form-input vl-slider", type="range", min="0", max="1", step="0.01", id="wTemperature") }}
+            </div>
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    <label class="form-label">Громкость: <span id="wVolLabel">100</span>%</label>
+                    {{ form.dub_volume_percent(class="form-input vl-slider", type="range", min="0", max="200", value="100", id="wVolume") }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Оригинал: <span id="wRatioLabel">30</span>%</label>
+                    <input type="range" class="form-input vl-slider" min="0" max="100" value="30" id="wRatioSlider">
+                    {{ form.original_audio_ratio(id="wRatio", type="hidden", value="0.3") }}
+                </div>
+            </div>
+        </div>
+
+        <div class="wizard-panel" data-panel="3">
+            <h3 class="form-section-title">Шаг 4 — Клонирование голоса <span class="form-section-hint">(опционально)</span></h3>
+            <p class="form-hint" style="margin-bottom:1rem;">Сэмпл MP3/WAV до 10 МБ, 3–10 сек чистой речи.</p>
+
+            <div class="voice-clone-block">
+                <h4 class="voice-clone-title">Мужской голос</h4>
+                <div class="form-group">
+                    <label class="form-label">Аудио-сэмпл</label>
+                    <input type="file" name="voice_sample_male" id="voiceSampleMale" class="form-input" accept=".mp3,.wav">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Возрастные группы</label>
+                    <div class="age-checkboxes">
+                        <label><input type="checkbox" value="child" class="age-cb-male" {% if 'child' in male_ages|default([]) %}checked{% endif %}> Ребёнок</label>
+                        <label><input type="checkbox" value="teenager" class="age-cb-male" {% if 'teenager' in male_ages|default([]) %}checked{% endif %}> Подросток</label>
+                        <label><input type="checkbox" value="mature" class="age-cb-male" {% if 'mature' in male_ages|default([]) %}checked{% endif %}> Взрослый</label>
+                        <label><input type="checkbox" value="elderly" class="age-cb-male" {% if 'elderly' in male_ages|default([]) %}checked{% endif %}> Пожилой</label>
+                    </div>
+                    <input type="hidden" name="voice_sample_male_ages" id="maleAgesHidden" value="{{ voice_opts.get('voice_sample_male_ages', '') if voice_opts is defined else '' }}">
+                </div>
+                <div class="form-group">
+                    {{ form.voice_sample_male_ref_text.label(class="form-label") }}
+                    {{ form.voice_sample_male_ref_text(class="form-input form-textarea", rows=2, id="wMaleRefText") }}
+                </div>
+            </div>
+
+            <div class="voice-clone-block">
+                <h4 class="voice-clone-title">Женский голос</h4>
+                <div class="form-group">
+                    <label class="form-label">Аудио-сэмпл</label>
+                    <input type="file" name="voice_sample_female" id="voiceSampleFemale" class="form-input" accept=".mp3,.wav">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Возрастные группы</label>
+                    <div class="age-checkboxes">
+                        <label><input type="checkbox" value="child" class="age-cb-female" {% if 'child' in female_ages|default([]) %}checked{% endif %}> Ребёнок</label>
+                        <label><input type="checkbox" value="teenager" class="age-cb-female" {% if 'teenager' in female_ages|default([]) %}checked{% endif %}> Подросток</label>
+                        <label><input type="checkbox" value="mature" class="age-cb-female" {% if 'mature' in female_ages|default([]) %}checked{% endif %}> Взрослый</label>
+                        <label><input type="checkbox" value="elderly" class="age-cb-female" {% if 'elderly' in female_ages|default([]) %}checked{% endif %}> Пожилой</label>
+                    </div>
+                    <input type="hidden" name="voice_sample_female_ages" id="femaleAgesHidden" value="{{ voice_opts.get('voice_sample_female_ages', '') if voice_opts is defined else '' }}">
+                </div>
+                <div class="form-group">
+                    {{ form.voice_sample_female_ref_text.label(class="form-label") }}
+                    {{ form.voice_sample_female_ref_text(class="form-input form-textarea", rows=2, id="wFemaleRefText") }}
+                </div>
+            </div>
+        </div>
+
+        <div class="wizard-panel" data-panel="4">
+            <h3 class="form-section-title">Шаг 5 — Проверка и запуск</h3>
+            <div class="wizard-preview" id="wizardReview">
+                <div class="wizard-preview-row"><span>Проект</span><strong id="rvName">—</strong></div>
+                <div class="wizard-preview-row"><span>Файл</span><strong id="rvFile">—</strong></div>
+                <div class="wizard-preview-row"><span>Языки</span><strong id="rvLang">—</strong></div>
+                <div class="wizard-preview-row"><span>Голос</span><strong id="rvVoice">auto</strong></div>
+                <div class="wizard-preview-row"><span>TTS temp</span><strong id="rvTemp">0.72</strong></div>
+                <div class="wizard-preview-row"><span>Клон</span><strong id="rvClone">—</strong></div>
+                <div class="wizard-preview-row"><span>Громкость</span><strong id="rvVol">100%</strong></div>
+                <div class="wizard-preview-row"><span>Оригинал</span><strong id="rvRatio">30%</strong></div>
+            </div>
+            <div class="wizard-estimate">
+                <span>⏱ Примерное время:</span> <strong id="rvTime">15–25 мин</strong>
+            </div>
+        </div>

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Подтверждение email{% endblock %}
+
+{% block content %}
+<section class="auth-page">
+    <div class="auth-card glass-card-holo verify-card">
+        <h1 class="auth-title">Подтвердите <span class="gradient-text">email</span></h1>
+        <p class="auth-subtitle">
+            Аккаунт <strong>{{ email }}</strong> создан. Введите 6-значный код для доступа к дубляжу.
+        </p>
+
+        <form method="POST" action="{{ url_for('auth.verify_code') }}" class="auth-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label">Код подтверждения</label>
+                <input type="text" name="code" class="form-input verify-code-input"
+                       placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
+                       autocomplete="one-time-code" required autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-glow">Подтвердить</button>
+        </form>
+
+        {% if dev_code and dev_verify_code_visible() %}
+        <div class="dev-verify-box">
+            <p class="dev-verify-label">Ваш код подтверждения{% if not dev_url %} (SMTP с этого ПК недоступен — используйте код ниже){% endif %}:</p>
+            <div class="dev-verify-code">{{ dev_code }}</div>
+            {% if dev_url %}
+            <a href="{{ dev_url }}" class="btn btn-glass btn-sm" style="margin-top:1rem;">Или подтвердить по ссылке</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <p class="auth-footer">
+            Не получили код?
+            <a href="{{ url_for('auth.resend_verification') }}">Отправить снова</a>
+        </p>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelector('.verify-code-input')?.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+});
+</script>
+{% endblock %}
