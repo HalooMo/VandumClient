@@ -27,7 +27,7 @@
         </h1>
 
         <p class="hero-v2-sub" data-animate="fade-up" data-delay="160">
-            Vandum превращает видео и аудио в профессиональный многоголосый закадровый дубляж.
+            Dpunk превращает видео и аудио в профессиональный многоголосый закадровый дубляж.
             AI распознаёт спикеров, переводит реплики и синтезирует уникальные голоса — автоматически.
         </p>
 
@@ -244,7 +244,7 @@
 <section class="section-block use-cases-section">
     <div class="section-head" data-animate="fade-up">
         <span class="section-tag">04 — Use Cases</span>
-        <h2 class="section-title-lg">Кому подходит <span class="gradient-text">Vandum</span></h2>
+        <h2 class="section-title-lg">Кому подходит <span class="gradient-text">Dpunk</span></h2>
     </div>
     <div class="use-cases-grid">
         {% set cases = [
@@ -270,11 +270,11 @@
 <section class="section-block">
     <div class="section-head" data-animate="fade-up">
         <span class="section-tag">05 — Compare</span>
-        <h2 class="section-title-lg">Студия vs <span class="gradient-text">Vandum</span></h2>
+        <h2 class="section-title-lg">Студия vs <span class="gradient-text">Dpunk</span></h2>
     </div>
     <div class="compare-table glass-card-holo" data-animate="fade-up">
         <div class="compare-row compare-header">
-            <div></div><div>Студия дубляжа</div><div class="compare-highlight">Vandum AI</div>
+            <div></div><div>Студия дубляжа</div><div class="compare-highlight">Dpunk AI</div>
         </div>
         {% set rows = [
             ('Срок', '2–4 недели', '10–40 минут'),
@@ -299,7 +299,7 @@
     <div class="section-head" data-animate="fade-up">
         <span class="section-tag">07 — API</span>
         <h2 class="section-title-lg">Интеграция через <span class="gradient-text">REST API</span></h2>
-        <p class="section-desc">Vandum выступает прокси: ваш ключ → наш сервер → SpeechLab GPU. Безопасно, без доступа к системным секретам.</p>
+        <p class="section-desc">Dpunk выступает прокси: ваш ключ → наш сервер → GPU inference. Безопасно, без доступа к системным секретам.</p>
     </div>
     <div class="api-home-grid">
         <div class="glass-card-holo api-home-card" data-animate="fade-up">
@@ -315,7 +315,7 @@
         <div class="glass-card-holo api-home-card" data-animate="fade-up" data-delay="80">
             <div class="api-home-icon">⚡</div>
             <h3>Тот же API, ваш URL</h3>
-            <p>Эндпоинты совместимы со SpeechLab: <code>POST /api/v1/dub</code>, опрос статуса, скачивание MP4.</p>
+            <p>Эндпоинты API: <code>POST /api/v1/dub</code>, опрос статуса, скачивание MP4.</p>
             <div class="docs-code" style="margin:1rem 0;font-size:0.75rem;padding:0.75rem 1rem;">{{ app_url }}/api/v1/dub</div>
         </div>
         <div class="glass-card-holo api-home-card" data-animate="fade-up" data-delay="160">
@@ -338,7 +338,7 @@
             ('Сколько времени занимает дубляж?', 'Короткий ролик (1–5 мин) — около 10–20 минут. Длинный контент может занять 40+ минут. На сервере одновременно выполняется одна задача (GPU).'),
             ('Какие форматы поддерживаются?', 'MP4, MKV, MOV, AVI, WebM, WAV, MP3, M4A. Максимальный размер загрузки — 500 МБ.'),
             ('Можно ли настроить голос?', 'Да. VoiceDesign позволяет задать пол, возраст, промпт и температуру TTS. Если не указать — AI определит автоматически по аудио каждой реплики.'),
-            ('Это синхронизация губ?', 'Нет. Vandum делает закадровый многоголосый дубляж. Поддерживается клонирование голоса из короткого аудио-сэмпла.'),
+            ('Это синхронизация губ?', 'Нет. Dpunk делает закадровый многоголосый дубляж. Поддерживается клонирование голоса из короткого аудио-сэмпла.'),
             ('Что если сервер занят?', 'Вы получите статус 503 с ID активной задачи. Дождитесь её завершения или отслеживайте прогресс в «Мои проекты».'),
             ('Как получить результат?', 'Когда статус задачи = done, скачайте MP4 из интерфейса проекта или через API /download.'),
             ('Как работает API?', 'Создайте ключ в разделе API, отправляйте запросы на наш URL с заголовком X-API-Key. Подробности — в документации.')

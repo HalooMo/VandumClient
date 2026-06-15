@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Vandum{% endblock %} — AI Дубляж</title>
+    <title>{% block title %}Dpunk{% endblock %} — AI Дубляж</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +32,7 @@
             <span class="logo-icon">
                 <svg viewBox="0 0 32 32" width="28" height="28"><polygon points="16,2 30,10 30,22 16,30 2,22 2,10" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="4" fill="currentColor"/></svg>
             </span>
-            <span class="logo-text">VANDUM</span>
+            <span class="logo-text">DPUNK</span>
         </a>
         <div class="nav-links" id="navLinks">
             <a href="{{ url_for('main.index') }}#how-it-works" class="nav-link" data-nav-section="how-it-works">Как работает</a>
@@ -100,7 +100,7 @@
         <div class="footer-grid">
             <div class="footer-col">
                 <div class="footer-brand">
-                    <span class="logo-icon">◈</span> VANDUM
+                    <span class="logo-icon">◈</span> DPUNK
                 </div>
                 <p class="footer-desc">Платформа AI-дубляжа нового поколения. Многоголосый закадровый перевод за минуты, не недели.</p>
             </div>
@@ -129,7 +129,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; {{ now().year if now is defined else '2026' }} Vandum · SpeechLab Engine</p>
+            <p>&copy; {{ now().year if now is defined else '2026' }} Dpunk · AI Дубляж</p>
             <div class="footer-tech">
                 <span>Qwen3-TTS</span>
                 <span>VoiceDesign</span>

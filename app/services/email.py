@@ -108,7 +108,7 @@ def send_verification_email(user):
 
     body = f"""Здравствуйте, {user.display_name}!
 
-Добро пожаловать в Vandum — платформу AI-дубляжа.
+Добро пожаловать в Dpunk — платформу AI-дубляжа.
 
 Код подтверждения: {code}
 
@@ -117,11 +117,11 @@ def send_verification_email(user):
 
 Код и ссылка действительны 24 часа.
 
-— Команда Vandum
+— Команда Dpunk
 """
     html = f"""
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 40px 20px;">
-        <h2 style="color: #00f0ff; margin-bottom: 8px;">Vandum</h2>
+        <h2 style="color: #00f0ff; margin-bottom: 8px;">Dpunk</h2>
         <p style="color: #ccc;">Здравствуйте, <strong>{user.display_name}</strong>!</p>
         <p style="color: #aaa;">Код подтверждения:</p>
         <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #00f0ff;">{code}</p>
@@ -132,7 +132,7 @@ def send_verification_email(user):
     </div>
     """
 
-    sent, error = _try_send_email(user.email, "Подтвердите аккаунт Vandum", body, html)
+    sent, error = _try_send_email(user.email, "Подтвердите аккаунт Dpunk", body, html)
     result["sent"] = sent
     result["error"] = error
 

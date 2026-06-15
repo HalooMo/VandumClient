@@ -17,13 +17,13 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-vandum}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vandum}
-      POSTGRES_DB: ${POSTGRES_DB:-vandum}
+      POSTGRES_USER: ${POSTGRES_USER:-dpunk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dpunk}
+      POSTGRES_DB: ${POSTGRES_DB:-dpunk}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vandum"]
+      test: ["CMD-SHELL", "pg_isready -U dpunk"]
       interval: 5s
       timeout: 5s
       retries: 5

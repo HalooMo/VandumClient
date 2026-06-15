@@ -95,7 +95,7 @@
 {% block content %}
 <section class="page-header">
     <h1 class="page-title">Документация <span class="gradient-text">API</span></h1>
-    <p class="page-subtitle">REST API для AI-дубляжа через Vandum · базовый URL: <code>{{ api_base_url }}</code></p>
+    <p class="page-subtitle">REST API для AI-дубляжа через Dpunk · базовый URL: <code>{{ api_base_url }}</code></p>
 </section>
 
 <div class="docs-layout">
@@ -116,10 +116,10 @@
         <h2>1. Аутентификация</h2>
         <p>Получите персональный ключ в разделе <a href="{{ url_for('api_portal.index') }}">API</a> (требуется аккаунт и подтверждённый email).</p>
         <p>Передавайте ключ в каждом запросе:</p>
-        <div class="docs-code">X-API-Key: vdm_ваш_ключ</div>
-        <p>Альтернатива: <code>Authorization: Bearer vdm_ваш_ключ</code></p>
+        <div class="docs-code">X-API-Key: dpk_ваш_ключ</div>
+        <p>Альтернатива: <code>Authorization: Bearer dpk_ваш_ключ</code></p>
         <div class="docs-callout">
-            Vandum проверяет ваш ключ и проксирует запрос на inference-сервер SpeechLab.
+            Dpunk проверяет ваш ключ и проксирует запрос на GPU inference-сервер.
             Системный ключ сервера вам недоступен.
         </div>
     </section>
@@ -146,7 +146,7 @@
         </div>
         <p><strong>multipart/form-data</strong> — загрузка файла (основной способ):</p>
         <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
-  -H "X-API-Key: vdm_ваш_ключ" \
+  -H "X-API-Key: dpk_ваш_ключ" \
   -F "project_name=demo" \
   -F "source_language=en" \
   -F "target_language=ru" \
@@ -187,7 +187,7 @@
             <tr><td><code>voice_sample_female_ref_text</code></td><td>Точный текст из женского сэмпла</td></tr>
         </table>
         <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
-  -H "X-API-Key: vdm_ваш_ключ" \
+  -H "X-API-Key: dpk_ваш_ключ" \
   -F "project_name=demo" \
   -F "source_language=en" \
   -F "target_language=ru" \
@@ -196,7 +196,7 @@
   -F "voice_sample_male_ref_text=Hello, this is my reference voice." \
   -F "video=@video.mp4"</div>
         <div class="docs-callout">
-            Через прокси Vandum недоступна передача <code>video_path</code> и серверных путей в JSON —
+            Через прокси Dpunk недоступна передача <code>video_path</code> и серверных путей в JSON —
             только загрузка файлов через multipart.
         </div>
     </section>
@@ -208,7 +208,7 @@
             <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;</span>
         </div>
         <p>Статусы: <code>queued</code>, <code>running</code>, <code>done</code>, <code>error</code>.</p>
-        <div class="docs-code">curl -H "X-API-Key: vdm_ваш_ключ" \
+        <div class="docs-code">curl -H "X-API-Key: dpk_ваш_ключ" \
   "{{ api_base_url }}/api/v1/jobs/JOB_ID"</div>
         <div class="docs-endpoint">
             <span class="docs-method">GET</span>
@@ -224,7 +224,7 @@
             <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;/download</span>
         </div>
         <p>Доступно только при <code>status = done</code>.</p>
-        <div class="docs-code">curl -H "X-API-Key: vdm_ваш_ключ" \
+        <div class="docs-code">curl -H "X-API-Key: dpk_ваш_ключ" \
   -o demo_dubbed.mp4 \
   "{{ api_base_url }}/api/v1/jobs/JOB_ID/download"</div>
     </section>
@@ -253,7 +253,7 @@
 <span class="kw">import</span> requests
 
 BASE = <span class="str">"{{ api_base_url }}"</span>
-HEADERS = {<span class="str">"X-API-Key"</span>: <span class="str">"vdm_ваш_ключ"</span>}</code></pre>
+HEADERS = {<span class="str">"X-API-Key"</span>: <span class="str">"dpk_ваш_ключ"</span>}</code></pre>
         </div>
 
         <div class="docs-py-block">

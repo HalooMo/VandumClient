@@ -4,7 +4,8 @@ import secrets
 from flask import current_app
 from werkzeug.security import check_password_hash, generate_password_hash
 
-KEY_PREFIX = "vdm_"
+KEY_PREFIX = "dpk_"
+LEGACY_KEY_PREFIX = "vdm_"
 MAX_KEYS_PER_USER = 5
 _HASH_PREFIXES = ("pbkdf2:", "scrypt:", "argon2:")
 
@@ -41,7 +42,7 @@ def generate_api_key():
 def verify_api_key(raw_key: str):
     from app.models import UserApiKey
 
-    if not raw_key or not raw_key.startswith(KEY_PREFIX):
+    if not raw_key or not raw_key.startswith((KEY_PREFIX, LEGACY_KEY_PREFIX)):
         return None
 
     stripped = raw_key.strip()

@@ -14,10 +14,10 @@ _PARSED_APP_URL = urlparse(_APP_URL)
 def _resolve_database_uri():
     uri = os.environ.get("DATABASE_URL", "").strip()
     if not uri:
-        return f"sqlite:///{BASE_DIR / 'vandum.db'}"
+        return f"sqlite:///{BASE_DIR / 'dpunk.db'}"
     # Docker hostname "db" is only reachable inside docker-compose network
     if "@db:" in uri and not os.environ.get("DOCKER_CONTAINER"):
-        return f"sqlite:///{BASE_DIR / 'vandum.db'}"
+        return f"sqlite:///{BASE_DIR / 'dpunk.db'}"
     return uri
 
 
@@ -63,7 +63,7 @@ class Config:
     ADMIN_RESET_PASSWORD = os.environ.get("ADMIN_RESET_PASSWORD", "").lower() in ("1", "true", "yes")
 
     # SpeechLab API
-    SPEECHLAB_BASE_URL = os.environ.get("SPEECHLAB_BASE_URL", "https://vandum.ru").rstrip("/")
+    SPEECHLAB_BASE_URL = os.environ.get("SPEECHLAB_BASE_URL", "https://dpunk.online").rstrip("/")
     SPEECHLAB_API_KEY = os.environ.get("SPEECHLAB_API_KEY", "")
     SPEECHLAB_MAX_UPLOAD_MB = int(os.environ.get("SPEECHLAB_MAX_UPLOAD_MB", "500"))
     VOICE_SAMPLE_MAX_MB = int(os.environ.get("VOICE_SAMPLE_MAX_MB", "10"))
@@ -76,14 +76,14 @@ class Config:
     MAIL_USE_SSL = os.environ.get("MAIL_USE_SSL", "false").lower() == "true"
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
-    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "Vandum <noreply@vandum.ru>")
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "Dpunk <noreply@dpunk.online>")
 
     # Google OAuth
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 
     # Bootstrap admin
-    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@vandum.ru")
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@dpunk.online")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
     UPLOAD_FOLDER = BASE_DIR / "uploads"

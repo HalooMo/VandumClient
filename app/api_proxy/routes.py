@@ -72,12 +72,12 @@ def health():
 
     try:
         data = SpeechLabClient().health()
-        public = {"status": data.get("status", "unknown"), "proxy": "vandum-client"}
+        public = {"status": data.get("status", "unknown"), "proxy": "dpunk-client"}
         if not is_production():
             public["upstream"] = data
         return jsonify(public)
     except Exception as exc:
-        body = {"status": "offline", "proxy": "vandum-client"}
+        body = {"status": "offline", "proxy": "dpunk-client"}
         if not is_production():
             body["error"] = str(exc)
         return jsonify(body), 503
