@@ -10,8 +10,8 @@ class SpeechLabClient:
             raise ValueError("SPEECHLAB_API_KEY не задан. Добавьте ключ в .env и перезапустите сервер.")
         self.headers = {"X-API-Key": self.api_key}
 
-    def health(self):
-        r = requests.get(f"{self.base_url}/health", timeout=30)
+    def health(self, timeout=30):
+        r = requests.get(f"{self.base_url}/health", timeout=timeout)
         r.raise_for_status()
         return r.json()
 

@@ -71,7 +71,7 @@ def health():
     from app.utils.security import is_production
 
     try:
-        data = SpeechLabClient().health()
+        data = SpeechLabClient().health(timeout=5)
         public = {"status": data.get("status", "unknown"), "proxy": "dpunk-client"}
         if not is_production():
             public["upstream"] = data

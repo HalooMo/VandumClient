@@ -39,8 +39,9 @@ def _sanitize_server_status(raw):
 
 
 def _fetch_server_status():
+    """Quick upstream ping for homepage — must not block page render."""
     try:
-        return _sanitize_server_status(SpeechLabClient().health())
+        return _sanitize_server_status(SpeechLabClient().health(timeout=2))
     except Exception:
         return {"status": "offline"}
 
