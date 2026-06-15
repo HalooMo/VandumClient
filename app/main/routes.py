@@ -1,10 +1,13 @@
-from flask import Blueprint, jsonify, render_template
+from pathlib import Path
+
+from flask import Blueprint, jsonify, render_template, send_from_directory
 from flask_login import current_user
 
 from app.models import Project, User
 from app.services.speechlab import SpeechLabClient
 
 main_bp = Blueprint("main", __name__)
+_SITE_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def _platform_stats():
@@ -55,6 +58,11 @@ def index():
 @main_bp.route("/about")
 def about():
     return render_template("main/about.html", stats=_platform_stats())
+
+
+@main_bp.route("/yandex_6c655ab99bbf8d25.html")
+def yandex_verification():
+    return send_from_directory(_SITE_ROOT, "yandex_6c655ab99bbf8d25.html")
 
 
 @main_bp.route("/api/public/stats")
