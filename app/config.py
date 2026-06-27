@@ -63,7 +63,7 @@ class Config:
     ADMIN_RESET_PASSWORD = os.environ.get("ADMIN_RESET_PASSWORD", "").lower() in ("1", "true", "yes")
 
     # SpeechLab API
-    SPEECHLAB_BASE_URL = os.environ.get("SPEECHLAB_BASE_URL", "https://dpunk.online").rstrip("/")
+    SPEECHLAB_BASE_URL = os.environ.get("SPEECHLAB_BASE_URL", "https://app.vandum.ru").rstrip("/")
     SPEECHLAB_API_KEY = os.environ.get("SPEECHLAB_API_KEY", "")
     SPEECHLAB_MAX_UPLOAD_MB = int(os.environ.get("SPEECHLAB_MAX_UPLOAD_MB", "500"))
     VOICE_SAMPLE_MAX_MB = int(os.environ.get("VOICE_SAMPLE_MAX_MB", "10"))

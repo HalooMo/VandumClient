@@ -27,7 +27,14 @@ TEXT_FIELDS = (
     "voice_sample_male_ref_text",
     "voice_sample_female_ref_text",
     "voice_clone_samples",
+    "silero_speaker",
+    "silero_all_replicas",
+    "silero_age_groups",
+    "silero_voices",
 )
+
+SILERO_SPEAKERS = frozenset({"aidar", "baya", "eugene", "kseniya", "xenia"})
+RU_TARGET_LANGUAGES = frozenset({"ru", "russian"})
 
 
 def _clean_text(value):
@@ -37,12 +44,31 @@ def _clean_text(value):
     return text or None
 
 
+def _truthy_form_value(value):
+    return str(value).strip().lower() in ("1", "true", "yes", "on", "y")
+
+
 def _normalize_ages(raw):
     if not raw:
         return None
     parts = [p.strip() for p in str(raw).replace(" ", "").split(",") if p.strip()]
     valid = [p for p in parts if p in AGE_GROUPS]
     return ",".join(valid) if valid else None
+
+
+def _is_ru_target(target_language):
+    if not target_language:
+        return False
+    return str(target_language).strip().lower() in RU_TARGET_LANGUAGES
+
+
+def _strip_silero_if_not_ru(data):
+    target = data.get("target_language")
+    if _is_ru_target(target):
+        return data
+    for key in ("silero_speaker", "silero_all_replicas", "silero_age_groups", "silero_voices"):
+        data.pop(key, None)
+    return data
 
 
 def build_dub_form_data(form=None, formdata=None):
@@ -64,6 +90,7 @@ def build_dub_form_data(form=None, formdata=None):
             and form.voice_sample_male_ref_text.data,
             "voice_sample_female_ref_text": getattr(form, "voice_sample_female_ref_text", None)
             and form.voice_sample_female_ref_text.data,
+            "silero_speaker": getattr(form, "silero_speaker", None) and form.silero_speaker.data,
         }
         for key, value in mapping.items():
             cleaned = _clean_text(value)
@@ -74,6 +101,9 @@ def build_dub_form_data(form=None, formdata=None):
         temp_field = getattr(form, "voice_design_temperature", None)
         if temp_field is not None and temp_field.data is not None:
             data["voice_design_temperature"] = str(temp_field.data)
+        silero_all = getattr(form, "silero_all_replicas", None)
+        if silero_all is not None and silero_all.data:
+            data["silero_all_replicas"] = "true"
 
     for key in TEXT_FIELDS:
         if key in data:
@@ -89,13 +119,23 @@ def build_dub_form_data(form=None, formdata=None):
                 data[key] = str(cleaned)
             elif key == "voice_age":
                 data[key] = str(cleaned)
+            elif key == "silero_all_replicas":
+                if _truthy_form_value(cleaned):
+                    data[key] = "true"
+            elif key == "silero_speaker":
+                if str(cleaned).lower() in SILERO_SPEAKERS:
+                    data[key] = str(cleaned).lower()
+            elif key == "silero_age_groups":
+                cleaned = _normalize_ages(cleaned)
+                if cleaned:
+                    data[key] = cleaned
             else:
                 data[key] = cleaned
 
     if data.get("voice_prompt") and not data.get("voice_design_template"):
         data["voice_design_template"] = data["voice_prompt"]
 
-    return data
+    return _strip_silero_if_not_ru(data)
 
 
 def collect_multipart_files(request_files):
@@ -143,6 +183,10 @@ def sanitize_upstream_json(data):
         return {}
     payload = dict(data)
     payload.pop("video_path", None)
+
+    if not _is_ru_target(payload.get("target_language")):
+        for key in ("silero_speaker", "silero_all_replicas", "silero_age_groups", "silero_voices"):
+            payload.pop(key, None)
 
     clones = payload.get("voice_clone_samples")
     if isinstance(clones, list):
@@ -262,10 +306,15 @@ def build_voice_options_json(formdata, sample_meta):
         "voice_sample_female_ages",
         "voice_sample_male_ref_text",
         "voice_sample_female_ref_text",
+        "silero_speaker",
+        "silero_all_replicas",
+        "silero_age_groups",
     ):
         val = _clean_text(formdata.get(key))
         if key.endswith("_ages"):
             val = _normalize_ages(val)
+        if key == "silero_all_replicas":
+            val = "true" if val and _truthy_form_value(val) else None
         if val:
             options[key] = val
     if sample_meta.get("male"):

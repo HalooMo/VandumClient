@@ -14,7 +14,7 @@
                     Сервер недоступен
                 {% endif %}
             </div>
-            {% if server_status.active_job %}
+            {% if current_user.is_authenticated and server_status.active_job %}
             <div class="hero-chip hero-chip-warn">
                 ⚡ Задача {{ server_status.active_job[:8] }}…
             </div>

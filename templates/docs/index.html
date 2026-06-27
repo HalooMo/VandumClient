@@ -95,7 +95,7 @@
 {% block content %}
 <section class="page-header">
     <h1 class="page-title">Документация <span class="gradient-text">API</span></h1>
-    <p class="page-subtitle">REST API для AI-дубляжа через Dpunk · базовый URL: <code>{{ api_base_url }}</code></p>
+    <p class="page-subtitle">REST API для AI-дубляжа SpeechLab · базовый URL: <code>{{ api_base_url }}</code></p>
 </section>
 
 <div class="docs-layout">
@@ -105,6 +105,7 @@
         <a href="#dub">Запуск дубляжа</a>
         <a href="#params">Параметры</a>
         <a href="#clone">Клон голоса</a>
+        <a href="#silero">Silero TTS</a>
         <a href="#jobs">Статус и список</a>
         <a href="#download">Скачивание</a>
         <a href="#errors">Коды ошибок</a>
@@ -192,13 +193,46 @@
   -F "voice_sample_male_ref_text=Hello, this is my reference voice." \
   -F "video=@video.mp4"</div>
         <div class="docs-callout">
-            Через прокси Dpunk недоступна передача <code>video_path</code> и серверных путей в JSON —
+            Через прокси Vandum недоступна передача <code>video_path</code> и серверных путей в JSON —
             только загрузка файлов через multipart.
         </div>
     </section>
 
+    <section class="docs-section" id="silero">
+        <h2>6. Silero TTS — готовые русские голоса</h2>
+        <p>Альтернатива Qwen3-TTS для русского дубляжа: фиксированные спикеры Silero v5_ru (быстрее, меньше нагрузка на GPU).</p>
+        <div class="docs-callout">
+            Работает <strong>только</strong> при <code>target_language = ru</code>. Для других языков параметры <code>silero_*</code> вернут ошибку 400.
+        </div>
+        <table class="docs-table glass-card">
+            <tr><th>Параметр</th><th>Описание</th></tr>
+            <tr><td><code>silero_speaker</code></td><td>aidar, eugene (♂) · baya, kseniya, xenia (♀)</td></tr>
+            <tr><td><code>silero_all_replicas</code></td><td>true — один спикер на все реплики (Qwen не используется)</td></tr>
+            <tr><td><code>silero_age_groups</code></td><td>child,teenager,mature,elderly — фильтр по возрасту</td></tr>
+            <tr><td><code>silero_voices</code></td><td>JSON-массив слотов для разных пол × возраст</td></tr>
+        </table>
+        <p><strong>Мужские реплики через Silero, женские — Qwen:</strong></p>
+        <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
+  -H "X-API-Key: dpk_ваш_ключ" \
+  -F "project_name=demo" \
+  -F "source_language=en" \
+  -F "target_language=ru" \
+  -F "silero_speaker=eugene" \
+  -F "video=@video.mp4"</div>
+        <p><strong>Все реплики одним голосом:</strong></p>
+        <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
+  -H "X-API-Key: dpk_ваш_ключ" \
+  -F "project_name=demo" \
+  -F "source_language=en" \
+  -F "target_language=ru" \
+  -F "silero_speaker=baya" \
+  -F "silero_all_replicas=true" \
+  -F "video=@video.mp4"</div>
+        <p>Можно комбинировать Silero с <code>voice_prompt</code> и <code>voice_sample_*</code> — Silero для выбранных реплик, Qwen для остальных.</p>
+    </section>
+
     <section class="docs-section" id="jobs">
-        <h2>6. Статус и список задач</h2>
+        <h2>7. Статус и список задач</h2>
         <div class="docs-endpoint">
             <span class="docs-method">GET</span>
             <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;</span>
@@ -214,7 +248,7 @@
     </section>
 
     <section class="docs-section" id="download">
-        <h2>7. Скачивание результата</h2>
+        <h2>8. Скачивание результата</h2>
         <div class="docs-endpoint">
             <span class="docs-method">GET</span>
             <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;/download</span>
@@ -226,11 +260,12 @@
     </section>
 
     <section class="docs-section" id="errors">
-        <h2>8. Коды ответов</h2>
+        <h2>9. Коды ответов</h2>
         <table class="docs-table glass-card">
             <tr><th>Код</th><th>Значение</th></tr>
             <tr><td>200</td><td>OK — GET, скачивание</td></tr>
             <tr><td>202</td><td>Accepted — задача создана</td></tr>
+            <tr><td>400</td><td>Неверные поля; silero_* при target_language ≠ ru</td></tr>
             <tr><td>401</td><td>Неверный или отсутствующий API key</td></tr>
             <tr><td>404</td><td>Задача не найдена (или не ваша)</td></tr>
             <tr><td>409</td><td>Результат ещё не готов</td></tr>
@@ -240,7 +275,7 @@
     </section>
 
     <section class="docs-section" id="python">
-        <h2>9. Пример на Python</h2>
+        <h2>10. Пример на Python</h2>
         <p>Полный сценарий: запуск дубляжа с клонированием голоса, ожидание и скачивание MP4.</p>
 
         <div class="docs-py-block">
@@ -253,7 +288,7 @@ HEADERS = {<span class="str">"X-API-Key"</span>: <span class="str">"dpk_ваш_�
         </div>
 
         <div class="docs-py-block">
-            <div class="docs-py-label">Шаг 1 — Запуск дубляжа</div>
+            <div class="docs-py-label">Шаг 1 — Запуск (вариант A: VoiceDesign + клон)</div>
             <pre class="docs-code docs-py"><code><span class="kw">with</span> <span class="fn">open</span>(<span class="str">"video.mp4"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> video, \
      <span class="fn">open</span>(<span class="str">"voice.wav"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> sample:
 
@@ -272,6 +307,28 @@ HEADERS = {<span class="str">"X-API-Key"</span>: <span class="str">"dpk_ваш_�
             <span class="str">"video"</span>: (<span class="str">"video.mp4"</span>, video, <span class="str">"video/mp4"</span>),
             <span class="str">"voice_sample_male"</span>: (<span class="str">"voice.wav"</span>, sample, <span class="str">"audio/wav"</span>),
         },
+        timeout=<span class="num">600</span>,
+    )
+
+r.<span class="fn">raise_for_status</span>()
+job_id = r.<span class="fn">json</span>()[<span class="str">"id"</span>]
+<span class="fn">print</span>(<span class="str">"job:"</span>, job_id)</code></pre>
+        </div>
+
+        <div class="docs-py-block">
+            <div class="docs-py-label">Шаг 1 — вариант B: Silero (только target_language=ru)</div>
+            <pre class="docs-code docs-py"><code><span class="kw">with</span> <span class="fn">open</span>(<span class="str">"video.mp4"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> video:
+    r = requests.<span class="fn">post</span>(
+        <span class="str">f"{BASE}/api/v1/dub"</span>,
+        headers=HEADERS,
+        data={
+            <span class="str">"project_name"</span>: <span class="str">"demo"</span>,
+            <span class="str">"source_language"</span>: <span class="str">"en"</span>,
+            <span class="str">"target_language"</span>: <span class="str">"ru"</span>,
+            <span class="str">"silero_speaker"</span>: <span class="str">"eugene"</span>,
+            <span class="str">"silero_all_replicas"</span>: <span class="str">"true"</span>,
+        },
+        files={<span class="str">"video"</span>: (<span class="str">"video.mp4"</span>, video, <span class="str">"video/mp4"</span>)},
         timeout=<span class="num">600</span>,
     )
 
@@ -321,7 +378,7 @@ out.<span class="fn">raise_for_status</span>()
     </section>
 
     <section class="docs-section" id="keys">
-        <h2>10. Управление ключами</h2>
+        <h2>11. Управление ключами</h2>
         <p>Ключи создаются в личном кабинете. Каждый ключ показывается один раз при генерации.</p>
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('api_portal.index') }}" class="btn btn-primary btn-glow">Перейти к API ключам</a>

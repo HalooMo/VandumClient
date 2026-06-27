@@ -69,6 +69,19 @@ class CreateProjectForm(FlaskForm):
         "Текст женского сэмпла",
         validators=[Optional(), Length(max=500)],
     )
+    silero_speaker = SelectField(
+        "Silero спикер",
+        choices=[
+            ("", "Не использовать"),
+            ("aidar", "Aidar (♂)"),
+            ("eugene", "Eugene (♂)"),
+            ("baya", "Baya (♀)"),
+            ("kseniya", "Kseniya (♀)"),
+            ("xenia", "Xenia (♀)"),
+        ],
+        validators=[Optional()],
+    )
+    silero_all_replicas = BooleanField("Озвучить все реплики этим спикером")
     submit = SubmitField("Запустить дубляж")
 
 

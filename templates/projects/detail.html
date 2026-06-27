@@ -63,6 +63,14 @@
             {% if voice_opts.get('voice_design_temperature') %}
                 <dt>TTS temp</dt><dd>{{ voice_opts.voice_design_temperature }}</dd>
             {% endif %}
+            {% if voice_opts.get('silero_speaker') %}
+                <dt>Silero</dt>
+                <dd>
+                    {{ voice_opts.silero_speaker }}
+                    {% if voice_opts.get('silero_all_replicas') %} (все реплики){% endif %}
+                    {% if voice_opts.get('silero_age_groups') %} · {{ voice_opts.silero_age_groups }}{% endif %}
+                </dd>
+            {% endif %}
             {% if voice_opts.get('voice_sample_male') %}
                 <dt>Клон ♂</dt><dd>{{ voice_opts.voice_sample_male }}{% if voice_opts.get('voice_sample_male_ages') %} ({{ voice_opts.voice_sample_male_ages }}){% endif %}</dd>
             {% endif %}

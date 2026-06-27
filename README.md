@@ -1,6 +1,6 @@
 # Dpunk — Web Client for AI Dubbing
 
-Клиентское веб-приложение для сервиса AI-дубляжа (https://dpunk.online).
+Клиентское веб-приложение для сервиса AI-дубляжа SpeechLab (https://app.vandum.ru).
 
 ## Возможности
 
@@ -41,7 +41,7 @@ docker compose up -d --build
 |---|---|
 | `SECRET_KEY` | Секрет Flask (обязательно сменить) |
 | `DATABASE_URL` | PostgreSQL URI (в Docker: `postgresql://dpunk:dpunk@db:5432/dpunk`) |
-| `SPEECHLAB_BASE_URL` | URL API сервера (по умолчанию `https://dpunk.online`) |
+| `SPEECHLAB_BASE_URL` | URL API сервера (по умолчанию `https://app.vandum.ru`) |
 | `SPEECHLAB_API_KEY` | API-ключ inference-сервера |
 | `MAIL_*` | SMTP для отправки писем подтверждения |
 | `GOOGLE_CLIENT_ID/SECRET` | Google OAuth credentials |
@@ -52,7 +52,7 @@ docker compose up -d --build
 
 1. Создайте проект в [Google Cloud Console](https://console.cloud.google.com/)
 2. Credentials → OAuth 2.0 Client ID → Web application
-3. Authorized redirect URI: `https://dpunk.online/auth/google/callback`
+3. Authorized redirect URI: `https://app.vandum.ru/auth/google/callback`
 4. Скопируйте Client ID и Secret в `.env`
 
 ## Структура

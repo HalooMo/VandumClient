@@ -249,6 +249,8 @@ def edit(project_id):
                 pass
         form.voice_sample_male_ref_text.data = opts.get("voice_sample_male_ref_text", "")
         form.voice_sample_female_ref_text.data = opts.get("voice_sample_female_ref_text", "")
+        form.silero_speaker.data = opts.get("silero_speaker", "")
+        form.silero_all_replicas.data = str(opts.get("silero_all_replicas", "")).lower() in ("1", "true", "yes")
 
     if form.validate_on_submit():
         if form.project_name.data != project.project_name:

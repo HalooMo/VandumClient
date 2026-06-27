@@ -77,6 +77,35 @@
                     {{ form.original_audio_ratio(id="wRatio", type="hidden", value="0.3") }}
                 </div>
             </div>
+
+            <div class="voice-silero-block" id="sileroBlock" hidden>
+                <h4 class="voice-clone-title">Silero TTS <span class="form-section-hint">(только RU)</span></h4>
+                <p class="form-hint" style="margin-bottom:0.75rem;">Готовые русские голоса — быстрее Qwen. Можно комбинировать с VoiceDesign и клоном.</p>
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        {{ form.silero_speaker.label(class="form-label") }}
+                        {{ form.silero_speaker(class="form-input form-select", id="wSileroSpeaker") }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <label class="checkbox-inline">
+                            {{ form.silero_all_replicas(id="wSileroAll") }}
+                            {{ form.silero_all_replicas.label.text }}
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Возрастные группы Silero</label>
+                    <div class="age-checkboxes">
+                        <label><input type="checkbox" value="child" class="age-cb-silero" {% if 'child' in silero_ages|default([]) %}checked{% endif %}> Ребёнок</label>
+                        <label><input type="checkbox" value="teenager" class="age-cb-silero" {% if 'teenager' in silero_ages|default([]) %}checked{% endif %}> Подросток</label>
+                        <label><input type="checkbox" value="mature" class="age-cb-silero" {% if 'mature' in silero_ages|default([]) %}checked{% endif %}> Взрослый</label>
+                        <label><input type="checkbox" value="elderly" class="age-cb-silero" {% if 'elderly' in silero_ages|default([]) %}checked{% endif %}> Пожилой</label>
+                    </div>
+                    <span class="form-hint">Пусто = все 4 группы. Не влияет при «все реплики одним спикером».</span>
+                    <input type="hidden" name="silero_age_groups" id="sileroAgesHidden" value="{{ voice_opts.get('silero_age_groups', '') if voice_opts is defined else '' }}">
+                </div>
+            </div>
         </div>
 
         <div class="wizard-panel" data-panel="3">
@@ -135,6 +164,7 @@
                 <div class="wizard-preview-row"><span>Файл</span><strong id="rvFile">—</strong></div>
                 <div class="wizard-preview-row"><span>Языки</span><strong id="rvLang">—</strong></div>
                 <div class="wizard-preview-row"><span>Голос</span><strong id="rvVoice">auto</strong></div>
+                <div class="wizard-preview-row"><span>Silero</span><strong id="rvSilero">—</strong></div>
                 <div class="wizard-preview-row"><span>TTS temp</span><strong id="rvTemp">0.72</strong></div>
                 <div class="wizard-preview-row"><span>Клон</span><strong id="rvClone">—</strong></div>
                 <div class="wizard-preview-row"><span>Громкость</span><strong id="rvVol">100%</strong></div>
