@@ -27,6 +27,7 @@ from app.utils.dub_params import (
     VIDEO_EXTENSIONS,
     build_dub_form_data,
     build_voice_options_json,
+    extract_user_voice_prompt,
     parse_voice_options,
     save_upload_file,
     validate_sample_file,
@@ -240,7 +241,7 @@ def edit(project_id):
         form.target_language.data = project.target_language
         form.voice_gender.data = project.voice_gender or ""
         form.voice_age.data = project.voice_age
-        form.voice_prompt.data = project.voice_prompt or ""
+        form.voice_prompt.data = extract_user_voice_prompt(project.voice_prompt) or project.voice_prompt or ""
         temp = opts.get("voice_design_temperature")
         if temp is not None:
             try:

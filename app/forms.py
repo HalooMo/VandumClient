@@ -44,7 +44,7 @@ class CreateProjectForm(FlaskForm):
     voice_prompt = TextAreaField(
         "Промпт голоса",
         validators=[Optional(), Length(max=500)],
-        render_kw={"placeholder": "Natural {gender_hint}, {lang}. {age_hint}."},
+        render_kw={"placeholder": "Тёплый закадровый рассказчик, кинематографичный тон"},
     )
     dub_volume_percent = IntegerField(
         "Громкость дубляжа (%)",

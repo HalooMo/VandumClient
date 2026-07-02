@@ -35,6 +35,10 @@ TEXT_FIELDS = (
 
 SILERO_SPEAKERS = frozenset({"aidar", "baya", "eugene", "kseniya", "xenia"})
 RU_TARGET_LANGUAGES = frozenset({"ru", "russian"})
+VOICE_PROMPT_SUFFIX = " Gender is {gender_hint}, language is {lang}. Age is {age_hint}."
+_COMPOSED_VOICE_PROMPT_RE = re.compile(
+    r"\.\s*Gender is \{gender_hint\}, language is \{lang\}\. Age is \{age_hint\}\.\s*$"
+)
 
 
 def _clean_text(value):
@@ -69,6 +73,26 @@ def _strip_silero_if_not_ru(data):
     for key in ("silero_speaker", "silero_all_replicas", "silero_age_groups", "silero_voices"):
         data.pop(key, None)
     return data
+
+
+def compose_voice_prompt(user_prompt):
+    """Combine user text with server-side placeholders for upstream VoiceDesign."""
+    cleaned = _clean_text(user_prompt)
+    if not cleaned:
+        return None
+    if _COMPOSED_VOICE_PROMPT_RE.search(cleaned):
+        return cleaned
+    base = cleaned.rstrip(".")
+    return f"{base}.{VOICE_PROMPT_SUFFIX}"
+
+
+def extract_user_voice_prompt(stored_prompt):
+    """Return only the user-entered part when reloading the project form."""
+    cleaned = _clean_text(stored_prompt)
+    if not cleaned:
+        return None
+    without_suffix = _COMPOSED_VOICE_PROMPT_RE.sub("", cleaned).rstrip(".").strip()
+    return without_suffix or cleaned
 
 
 def build_dub_form_data(form=None, formdata=None):
@@ -132,8 +156,13 @@ def build_dub_form_data(form=None, formdata=None):
             else:
                 data[key] = cleaned
 
+    if form and data.get("voice_prompt"):
+        data["voice_prompt"] = compose_voice_prompt(data["voice_prompt"])
+
     if data.get("voice_prompt") and not data.get("voice_design_template"):
         data["voice_design_template"] = data["voice_prompt"]
+    if data.get("voice_prompt") and not data.get("voice_design_prompt"):
+        data["voice_design_prompt"] = data["voice_prompt"]
 
     return _strip_silero_if_not_ru(data)
 

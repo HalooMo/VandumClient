@@ -711,3 +711,5 @@ curl -H "X-API-Key: ВАШ_КЛЮЧ" \
   tail -f /opt/speechlab/server/data/logs/job_<JOB_ID>.log
 
 ================================================================================
+измени блок "Промпт голоса
+Natural {gender_hint}, {lang}. {age_hint}.
