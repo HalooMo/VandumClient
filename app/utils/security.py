@@ -13,9 +13,8 @@ def is_production():
 
 
 def dev_verify_code_visible():
-    if current_app.config.get("DEV_SHOW_VERIFY_CODE"):
-        return True
-    return not is_production()
+    """Only when explicitly enabled — never infer from non-HTTPS alone."""
+    return bool(current_app.config.get("DEV_SHOW_VERIFY_CODE"))
 
 
 def safe_redirect_target(next_url):

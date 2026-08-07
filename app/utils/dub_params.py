@@ -102,7 +102,7 @@ def _normalize_cast_voice(raw):
         return mapped
     if key in CAST_VOICE_IDS:
         return key
-    return cleaned
+    return None
 
 
 def _normalize_cast_fields(data):

@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
+import re
 import tempfile
+import threading
 
 from flask import Blueprint, Response, current_app, jsonify, request
 from flask_limiter.util import get_remote_address
@@ -8,7 +10,7 @@ from app.api_proxy.auth import require_api_key
 from app.extensions import db, limiter
 from app.models import ApiJob
 from app.services.media_download import MediaDownloadError, download_media_url, validate_media_url
-from app.services.quotas import check_dub_quota, dub_quota_remaining
+from app.services.quotas import check_dub_quota, dub_quota_remaining, record_dub_usage
 from app.services.speechlab import SpeechLabClient
 from app.utils.dub_params import (
     build_dub_form_data,
@@ -20,6 +22,30 @@ from app.utils.dub_params import (
 )
 
 api_proxy_bp = Blueprint("api_proxy", __name__)
+
+_YTDLP_API_SLOTS = threading.Semaphore(2)
+
+
+def _safe_download_filename(project_name):
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "_", (project_name or "project"))[:64]
+    return f"{safe or 'project'}_dubbed.mp4"
+
+
+def _api_download_by_url(video_url, dest_dir):
+    """Download with concurrency cap and capped timeout (API request path)."""
+    if not _YTDLP_API_SLOTS.acquire(blocking=False):
+        raise MediaDownloadError("Сервер занят скачиванием по URL. Повторите через минуту.")
+    try:
+        timeout = min(int(current_app.config.get("YTDLP_TIMEOUT_SEC", 600)), 180)
+        return download_media_url(
+            video_url,
+            dest_dir,
+            max_mb=current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
+            timeout_sec=timeout,
+            max_duration_sec=current_app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
+        )
+    finally:
+        _YTDLP_API_SLOTS.release()
 
 
 def _api_key_identifier():
@@ -58,6 +84,7 @@ def _register_job(api_key, payload, upstream):
         status=upstream.get("status", "queued"),
     )
     db.session.add(job)
+    record_dub_usage(api_key.user_id, source="api")
     db.session.commit()
     return job
 
@@ -139,13 +166,7 @@ def create_dub(api_key):
                     return _json_error("Загрузка по ссылке отключена на сервере.", 503)
                 temp_dir = tempfile.TemporaryDirectory(prefix="dpunk_ytdlp_")
                 try:
-                    path, _ = download_media_url(
-                        video_url,
-                        temp_dir.name,
-                        max_mb=current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
-                        timeout_sec=current_app.config.get("YTDLP_TIMEOUT_SEC", 600),
-                        max_duration_sec=current_app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
-                    )
+                    path, _ = _api_download_by_url(video_url, temp_dir.name)
                 except MediaDownloadError as exc:
                     return _json_error(str(exc), 400)
                 downloaded_paths["video"] = path
@@ -167,13 +188,7 @@ def create_dub(api_key):
                     return _json_error("Загрузка по ссылке отключена на сервере.", 503)
                 temp_dir = tempfile.TemporaryDirectory(prefix="dpunk_ytdlp_")
                 try:
-                    path, _ = download_media_url(
-                        video_url,
-                        temp_dir.name,
-                        max_mb=current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
-                        timeout_sec=current_app.config.get("YTDLP_TIMEOUT_SEC", 600),
-                        max_duration_sec=current_app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
-                    )
+                    path, _ = _api_download_by_url(video_url, temp_dir.name)
                 except MediaDownloadError as exc:
                     return _json_error(str(exc), 400)
                 downloaded_paths["video"] = path
@@ -192,13 +207,7 @@ def create_dub(api_key):
                     return _json_error("Загрузка по ссылке отключена на сервере.", 503)
                 temp_dir = tempfile.TemporaryDirectory(prefix="dpunk_ytdlp_")
                 try:
-                    path, _ = download_media_url(
-                        video_url,
-                        temp_dir.name,
-                        max_mb=current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
-                        timeout_sec=current_app.config.get("YTDLP_TIMEOUT_SEC", 600),
-                        max_duration_sec=current_app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
-                    )
+                    path, _ = _api_download_by_url(video_url, temp_dir.name)
                 except MediaDownloadError as exc:
                     return _json_error(str(exc), 400)
                 downloaded_paths["video"] = path
@@ -212,7 +221,7 @@ def create_dub(api_key):
                 upstream = resp.json()
                 _register_job(api_key, payload, upstream)
             except Exception:
-                pass
+                current_app.logger.exception("Failed to register API job locally")
 
         return _proxy_response(resp)
     finally:
@@ -289,16 +298,21 @@ def download_job(api_key, job_id):
             return _proxy_response(resp)
 
         def generate():
-            for chunk in resp.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    yield chunk
+            try:
+                for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        yield chunk
+            finally:
+                resp.close()
 
         headers = {}
         cd = resp.headers.get("Content-Disposition")
-        if cd:
+        if cd and "\n" not in cd and "\r" not in cd:
             headers["Content-Disposition"] = cd
         else:
-            headers["Content-Disposition"] = f'attachment; filename="{record.project_name}_dubbed.mp4"'
+            headers["Content-Disposition"] = (
+                f'attachment; filename="{_safe_download_filename(record.project_name)}"'
+            )
 
         return Response(
             generate(),

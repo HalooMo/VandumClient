@@ -21,7 +21,7 @@ from app.forms import CreateProjectForm
 from app.models import Project
 from app.services.media_download import validate_media_url
 from app.services.project_worker import start_background_upload
-from app.services.quotas import check_dub_quota, dub_quota_remaining
+from app.services.quotas import check_dub_quota, dub_quota_remaining, record_dub_usage
 from app.services.speechlab import SpeechLabClient
 from app.utils.dub_params import (
     SAMPLE_EXTENSIONS,
@@ -169,6 +169,7 @@ def _start_project(form, existing=None):
         )
         db.session.add(project)
 
+    record_dub_usage(current_user.id, source="web")
     db.session.commit()
 
     start_background_upload(
@@ -406,12 +407,16 @@ def _proxy_result_media(project_id, disposition="attachment"):
             flash("Не удалось скачать файл.", "error")
             return redirect(url_for("projects.detail", project_id=project.id))
 
-        filename = f"{project.project_name}_dubbed.mp4"
+        safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", project.project_name or "project")[:64]
+        filename = f"{safe_name}_dubbed.mp4"
 
         def generate():
-            for chunk in resp.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    yield chunk
+            try:
+                for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        yield chunk
+            finally:
+                resp.close()
 
         headers = {
             "Content-Disposition": f'{disposition}; filename="{filename}"',
@@ -421,8 +426,6 @@ def _proxy_result_media(project_id, disposition="attachment"):
             val = resp.headers.get(key)
             if val:
                 headers[key] = val
-        if "Accept-Ranges" not in headers and resp.status_code == 200:
-            headers["Accept-Ranges"] = "bytes"
 
         return Response(
             generate(),

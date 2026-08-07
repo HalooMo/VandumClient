@@ -66,6 +66,12 @@ sudo apt install -y ffmpeg
 
 API: поле `video_url` в multipart или JSON (`POST /api/v1/dub`) вместо `video` / `video_path`.
 
+## Деплой
+
+См. подробный чеклист: [DEPLOY.md](DEPLOY.md).
+
+Кратко на VPS: `git pull` → `pip install -r requirements.txt` → `ffmpeg` для yt-dlp → сильный `.env` → `systemctl restart vandumclient`.
+
 ## Google OAuth
 
 1. Создайте проект в [Google Cloud Console](https://console.cloud.google.com/)

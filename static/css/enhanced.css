@@ -79,6 +79,7 @@ body:hover .cursor-glow { opacity: 1; }
 .nav-user-info { display: flex; flex-direction: column; line-height: 1.2; }
 .nav-user-name { font-size: 0.8rem; font-weight: 600; }
 .nav-user-meta { font-size: 0.65rem; color: var(--text-muted); }
+.nav-logout-form { display: inline; margin: 0; padding: 0; }
 .nav-logout {
     color: var(--text-muted);
     text-decoration: none;
@@ -86,8 +87,22 @@ body:hover .cursor-glow { opacity: 1; }
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
     transition: color 0.2s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
 }
 .nav-logout:hover { color: var(--red); }
+.link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--cyan);
+    cursor: pointer;
+    font: inherit;
+    text-decoration: underline;
+}
+.link-btn:hover { color: #fff; }
 
 .verify-pulse {
     width: 8px; height: 8px;

@@ -59,7 +59,10 @@
                             <span class="nav-user-meta">{{ user_stats.my_projects }} проектов</span>
                         {% endif %}
                     </div>
-                    <a href="{{ url_for('auth.logout') }}" class="nav-logout" title="Выйти">⏻</a>
+                    <form method="POST" action="{{ url_for('auth.logout') }}" class="nav-logout-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="nav-logout" title="Выйти">⏻</button>
+                    </form>
                 </div>
             {% else %}
                 <a href="{{ url_for('auth.login') }}" class="btn btn-ghost btn-sm">Войти</a>

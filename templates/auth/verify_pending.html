@@ -32,7 +32,10 @@
 
         <p class="auth-footer">
             Не получили код?
-            <a href="{{ url_for('auth.resend_verification') }}">Отправить снова</a>
+            <form method="POST" action="{{ url_for('auth.resend_verification') }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="link-btn">Отправить снова</button>
+            </form>
         </p>
     </div>
 </section>

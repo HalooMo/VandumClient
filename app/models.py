@@ -129,7 +129,7 @@ class UserApiKey(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     name = db.Column(db.String(64), nullable=False, default="Default")
     key_prefix = db.Column(db.String(20), nullable=False)
-    key_hash = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    key_hash = db.Column(db.String(255), unique=True, nullable=False, index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
     last_used_at = db.Column(db.DateTime(timezone=True))
@@ -152,3 +152,13 @@ class ApiJob(db.Model):
     error_message = db.Column(db.Text)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
     finished_at = db.Column(db.DateTime(timezone=True))
+
+
+class DubUsage(db.Model):
+    """One row per dub start (web restart or API) for daily quota accounting."""
+    __tablename__ = "dub_usage"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    source = db.Column(db.String(16), nullable=False, default="web")
+    created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False, index=True)

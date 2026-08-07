@@ -25,6 +25,7 @@ def create_app(config_class=Config):
     )
     app.config.from_object(config_class)
     _refresh_env_config(app)
+    _validate_production_secrets(app)
 
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
 
@@ -92,6 +93,34 @@ def create_app(config_class=Config):
         _bootstrap_admin(app)
 
     return app
+
+
+def _validate_production_secrets(app):
+    """Refuse weak defaults when running as production."""
+    env = (app.config.get("FLASK_ENV") or "").lower()
+    if env != "production":
+        return
+
+    secret = (app.config.get("SECRET_KEY") or "").strip()
+    weak_secrets = {
+        "",
+        "dev-secret-change-in-production",
+        "change-me-to-a-long-random-string",
+        "change-me",
+    }
+    if secret in weak_secrets or len(secret) < 24:
+        raise RuntimeError(
+            "Production requires a strong SECRET_KEY in .env (min 24 chars, not a placeholder)."
+        )
+
+    admin_pw = (app.config.get("ADMIN_PASSWORD") or "").strip()
+    if admin_pw in ("", "admin123", "change-me"):
+        raise RuntimeError(
+            "Production requires a non-default ADMIN_PASSWORD in .env."
+        )
+
+    if not (app.config.get("SPEECHLAB_API_KEY") or "").strip():
+        app.logger.warning("SPEECHLAB_API_KEY is empty — dubbing will fail")
 
 
 def _refresh_env_config(app):
@@ -173,6 +202,30 @@ def _ensure_schema():
         with db.engine.begin() as conn:
             if "voice_options" not in proj_cols:
                 conn.execute(text("ALTER TABLE projects ADD COLUMN voice_options TEXT"))
+
+    if inspector.has_table("user_api_keys"):
+        key_cols = {col["name"]: col for col in inspector.get_columns("user_api_keys")}
+        col = key_cols.get("key_hash")
+        # Widen hash column if still VARCHAR(64) (pbkdf2 hashes are longer)
+        if col is not None:
+            typ = str(col.get("type") or "").upper()
+            if "64" in typ and "255" not in typ:
+                dialect = db.engine.dialect.name
+                with db.engine.begin() as conn:
+                    if dialect == "postgresql":
+                        conn.execute(text(
+                            "ALTER TABLE user_api_keys ALTER COLUMN key_hash TYPE VARCHAR(255)"
+                        ))
+                    elif dialect == "sqlite":
+                        # SQLite ignores length; recreate not required
+                        pass
+                    else:
+                        try:
+                            conn.execute(text(
+                                "ALTER TABLE user_api_keys MODIFY key_hash VARCHAR(255)"
+                            ))
+                        except Exception:
+                            pass
 
 
 def _init_oauth(app):

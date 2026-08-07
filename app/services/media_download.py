@@ -14,6 +14,14 @@ from app.utils.dub_params import VIDEO_EXTENSIONS
 logger = logging.getLogger(__name__)
 
 _SAFE_NAME_RE = re.compile(r"[^a-zA-Z0-9._-]+")
+_BLOCKED_HOSTS = frozenset({
+    "localhost",
+    "metadata.google.internal",
+    "metadata",
+    "169.254.169.254",
+})
+# CGNAT / shared address space (not covered by ip.is_private on all Python builds)
+_CGNAT = ipaddress.ip_network("100.64.0.0/10")
 
 
 class MediaDownloadError(Exception):
@@ -25,6 +33,57 @@ def _clean_url(raw: str | None) -> str | None:
         return None
     text = str(raw).strip()
     return text or None
+
+
+def _ip_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    ):
+        return True
+    if isinstance(ip, ipaddress.IPv6Address):
+        if ip.ipv4_mapped is not None:
+            return _ip_blocked(ip.ipv4_mapped)
+        # Unique local addresses
+        if (int(ip) >> 118) == 0b1111110:  # fc00::/7
+            return True
+    if ip in _CGNAT:
+        return True
+    return False
+
+
+def _assert_public_host(hostname: str, port: int) -> None:
+    host = (hostname or "").lower().strip("[]")
+    if host in _BLOCKED_HOSTS or host.endswith(".local") or host.endswith(".internal"):
+        raise MediaDownloadError("Этот хост недоступен для скачивания")
+
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None and _ip_blocked(literal):
+        raise MediaDownloadError("Ссылки на внутренние адреса запрещены")
+
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise MediaDownloadError(f"Не удалось разрешить хост: {hostname}") from exc
+
+    if not infos:
+        raise MediaDownloadError(f"Не удалось разрешить хост: {hostname}")
+
+    for info in infos:
+        ip_str = info[4][0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if _ip_blocked(ip):
+            raise MediaDownloadError("Ссылки на внутренние адреса запрещены")
 
 
 def validate_media_url(raw_url: str | None) -> str | None:
@@ -39,40 +98,14 @@ def validate_media_url(raw_url: str | None) -> str | None:
         return "Ссылка должна начинаться с http:// или https://"
     if not parsed.hostname:
         return "Некорректная ссылка"
-    host = parsed.hostname.lower()
-    if host in ("localhost", "metadata.google.internal"):
-        return "Этот хост недоступен для скачивания"
     try:
-        _assert_public_host(host, parsed.port or (443 if parsed.scheme == "https" else 80))
+        _assert_public_host(
+            parsed.hostname,
+            parsed.port or (443 if parsed.scheme == "https" else 80),
+        )
     except MediaDownloadError as exc:
         return str(exc)
     return None
-
-
-def _assert_public_host(hostname: str, port: int) -> None:
-    try:
-        infos = socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
-    except socket.gaierror as exc:
-        raise MediaDownloadError(f"Не удалось разрешить хост: {hostname}") from exc
-
-    if not infos:
-        raise MediaDownloadError(f"Не удалось разрешить хост: {hostname}")
-
-    for info in infos:
-        ip_str = info[4][0]
-        try:
-            ip = ipaddress.ip_address(ip_str)
-        except ValueError:
-            continue
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_reserved
-            or ip.is_multicast
-            or ip.is_unspecified
-        ):
-            raise MediaDownloadError("Ссылки на внутренние адреса запрещены")
 
 
 def _duration_filter(max_duration_sec: int):
@@ -120,6 +153,16 @@ def download_media_url(
     if err:
         raise MediaDownloadError(err)
 
+    # Re-check immediately before download (reduce DNS rebinding window)
+    parsed = urlparse(url)
+    try:
+        _assert_public_host(
+            parsed.hostname,
+            parsed.port or (443 if parsed.scheme == "https" else 80),
+        )
+    except MediaDownloadError:
+        raise
+
     try:
         import yt_dlp
     except ImportError as exc:
@@ -130,7 +173,6 @@ def download_media_url(
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clear previous video.* leftovers in this session dir
     for old in dest_dir.glob("video.*"):
         try:
             old.unlink(missing_ok=True)
@@ -151,19 +193,19 @@ def download_media_url(
         "quiet": True,
         "no_warnings": True,
         "noprogress": True,
-        "socket_timeout": min(60, max(10, timeout_sec // 10)),
+        "socket_timeout": min(60, max(10, int(timeout_sec) // 10)),
         "retries": 2,
         "fragment_retries": 2,
         "max_filesize": max_bytes,
         "restrictfilenames": True,
         "overwrites": True,
+        "nocheckcertificate": False,
         "match_filter": _duration_filter(max_duration_sec) if max_duration_sec else None,
     }
 
     display_name = "video.mp4"
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Soft deadline: yt-dlp has no global timeout; rely on socket_timeout + max_filesize
             info = ydl.extract_info(url, download=True)
             if isinstance(info, dict):
                 title = (info.get("title") or "").strip()

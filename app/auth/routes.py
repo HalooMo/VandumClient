@@ -235,7 +235,7 @@ def google_callback():
         return redirect(url_for("auth.login"))
 
 
-@auth_bp.route("/logout")
+@auth_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
     logout_user()
@@ -245,8 +245,9 @@ def logout():
     return redirect(url_for("main.index"))
 
 
-@auth_bp.route("/resend-verification")
+@auth_bp.route("/resend-verification", methods=["POST"])
 @login_required
+@_limit(lambda: current_app.config.get("RATELIMIT_VERIFY", "5 per minute"))
 def resend_verification():
     if current_user.email_verified:
         flash("Email уже подтверждён.", "info")
