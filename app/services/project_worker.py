@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.extensions import db
 from app.models import Project
+from app.services.media_download import MediaDownloadError, download_media_url
 from app.services.speechlab import SpeechLabClient
 from app.utils.dub_params import close_file_handles, collect_multipart_files_from_paths
 
@@ -31,16 +32,48 @@ def _apply_response(project, resp):
         project.error_message = None
 
 
-def _upload_project(app, project_id, file_paths, payload):
-    """Upload video and optional voice samples to SpeechLab in background."""
+def _resolve_video_path(app, project, file_paths, video_url, session_dir):
+    """Ensure file_paths contains a local video path (download via yt-dlp if needed)."""
+    if file_paths.get("video"):
+        return file_paths
+
+    if not video_url:
+        raise MediaDownloadError("Видеофайл не найден")
+
+    if not app.config.get("YTDLP_ENABLED", True):
+        raise MediaDownloadError("Загрузка по ссылке отключена на сервере")
+
+    dest = Path(session_dir) if session_dir else None
+    if not dest:
+        raise MediaDownloadError("Нет каталога для скачивания")
+
+    path, display_name = download_media_url(
+        video_url,
+        dest,
+        max_mb=app.config["SPEECHLAB_MAX_UPLOAD_MB"],
+        timeout_sec=app.config.get("YTDLP_TIMEOUT_SEC", 600),
+        max_duration_sec=app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
+    )
+    file_paths["video"] = path
+    if display_name:
+        project.original_filename = display_name
+    return file_paths
+
+
+def _upload_project(app, project_id, file_paths, payload, video_url=None, session_dir=None):
+    """Download (optional) then upload video and voice samples to SpeechLab."""
     with app.app_context():
         project = db.session.get(Project, project_id)
         if not project:
             return
 
         files = None
+        paths = dict(file_paths or {})
         try:
-            files = collect_multipart_files_from_paths(file_paths)
+            paths = _resolve_video_path(app, project, paths, video_url, session_dir)
+            db.session.commit()
+
+            files = collect_multipart_files_from_paths(paths)
             if "video" not in files:
                 project.status = "error"
                 project.error_message = "Видеофайл не найден"
@@ -50,6 +83,10 @@ def _upload_project(app, project_id, file_paths, payload):
             client = SpeechLabClient()
             resp = client.create_dub(payload, files=files)
             _apply_response(project, resp)
+        except MediaDownloadError as exc:
+            logger.warning("Media download failed for project %s: %s", project_id, exc)
+            project.status = "error"
+            project.error_message = str(exc)
         except Exception as exc:
             logger.exception("Background upload failed for project %s", project_id)
             project.status = "error"
@@ -57,17 +94,18 @@ def _upload_project(app, project_id, file_paths, payload):
         finally:
             close_file_handles(files)
             db.session.commit()
-            for path in file_paths.values():
+            for path in paths.values():
                 try:
                     Path(path).unlink(missing_ok=True)
                 except Exception:
                     pass
 
 
-def start_background_upload(app, project_id, file_paths, payload):
+def start_background_upload(app, project_id, file_paths, payload, video_url=None, session_dir=None):
     thread = threading.Thread(
         target=_upload_project,
         args=(app, project_id, file_paths, payload),
+        kwargs={"video_url": video_url, "session_dir": session_dir},
         daemon=True,
     )
     thread.start()

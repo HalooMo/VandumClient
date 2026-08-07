@@ -108,7 +108,7 @@ def send_verification_email(user):
 
     body = f"""Здравствуйте, {user.display_name}!
 
-Добро пожаловать в Dpunk — платформу AI-дубляжа.
+Добро пожаловать в Dpunk — быстрый AI-дубляж: загрузили файл, скачали MP4.
 
 Код подтверждения: {code}
 

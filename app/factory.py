@@ -84,6 +84,7 @@ def create_app(config_class=Config):
             "nav_is_active": nav_is_active,
             "app_url": app.config.get("APP_URL", "").rstrip("/") or "http://localhost:5000",
             "dev_verify_code_visible": dev_verify_code_visible,
+            "max_upload_mb": app.config.get("SPEECHLAB_MAX_UPLOAD_MB", 150),
         }
 
     with app.app_context():
@@ -117,14 +118,30 @@ def _refresh_env_config(app):
         "ADMIN_RESET_PASSWORD",
         "MAX_DUB_JOBS_PER_DAY",
         "RATELIMIT_ENABLED",
+        "YTDLP_ENABLED",
+        "YTDLP_TIMEOUT_SEC",
+        "YTDLP_MAX_DURATION_SEC",
     )
     for key in env_keys:
         val = os.environ.get(key)
         if val is not None and val != "":
-            if key in ("MAIL_PORT", "SPEECHLAB_MAX_UPLOAD_MB", "MAX_DUB_JOBS_PER_DAY"):
+            if key in (
+                "MAIL_PORT",
+                "SPEECHLAB_MAX_UPLOAD_MB",
+                "MAX_DUB_JOBS_PER_DAY",
+                "YTDLP_TIMEOUT_SEC",
+                "YTDLP_MAX_DURATION_SEC",
+            ):
                 app.config[key] = int(val)
-            elif key in ("MAIL_USE_TLS", "MAIL_USE_SSL", "RATELIMIT_ENABLED", "DEV_SHOW_VERIFY_CODE", "ADMIN_RESET_PASSWORD"):
-                app.config[key] = val.lower() == "true" or val == "1"
+            elif key in (
+                "MAIL_USE_TLS",
+                "MAIL_USE_SSL",
+                "RATELIMIT_ENABLED",
+                "DEV_SHOW_VERIFY_CODE",
+                "ADMIN_RESET_PASSWORD",
+                "YTDLP_ENABLED",
+            ):
+                app.config[key] = val.lower() in ("1", "true", "yes")
             else:
                 app.config[key] = val
 

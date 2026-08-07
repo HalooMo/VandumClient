@@ -41,12 +41,23 @@ class SpeechLabClient:
         )
         return r
 
-    def download_job(self, job_id):
+    def download_job(self, job_id, extra_headers=None):
+        headers = dict(self.headers)
+        if extra_headers:
+            headers.update(extra_headers)
         r = requests.get(
             f"{self.base_url}/api/v1/jobs/{job_id}/download",
-            headers=self.headers,
+            headers=headers,
             stream=True,
             timeout=600,
+        )
+        return r
+
+    def list_cast_voices(self, timeout=30):
+        r = requests.get(
+            f"{self.base_url}/api/v1/cast-voices",
+            headers=self.headers,
+            timeout=timeout,
         )
         return r
 

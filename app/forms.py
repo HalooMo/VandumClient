@@ -30,6 +30,11 @@ class CreateProjectForm(FlaskForm):
             Regexp(r"^[a-zA-Z0-9_-]+$", message="Только буквы, цифры, _ и -"),
         ],
     )
+    video_url = StringField(
+        "Ссылка на медиа",
+        validators=[Optional(), Length(max=2048)],
+        render_kw={"placeholder": "https://www.youtube.com/watch?v=…", "id": "wVideoUrl"},
+    )
     source_language = SelectField("Язык оригинала", validators=[DataRequired()])
     target_language = SelectField("Язык дубляжа", validators=[DataRequired()])
     voice_gender = SelectField(
@@ -68,6 +73,25 @@ class CreateProjectForm(FlaskForm):
     voice_sample_female_ref_text = TextAreaField(
         "Текст женского сэмпла",
         validators=[Optional(), Length(max=500)],
+    )
+    cast_mode = SelectField(
+        "Встроенные cast-голоса",
+        choices=[
+            ("", "Не использовать"),
+            ("voice", "Один голос на весь ролик"),
+            ("speakers", "Три голоса по спикерам (Локи / Том Харди / Тор)"),
+        ],
+        validators=[Optional()],
+    )
+    cast_voice = SelectField(
+        "Cast-голос",
+        choices=[
+            ("", "—"),
+            ("loki", "Локи"),
+            ("tom_hardy", "Том Харди"),
+            ("thor", "Тор"),
+        ],
+        validators=[Optional()],
     )
     silero_speaker = SelectField(
         "Silero спикер",

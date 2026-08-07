@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import tempfile
 
 from flask import Blueprint, Response, current_app, jsonify, request
 from flask_limiter.util import get_remote_address
@@ -6,12 +7,16 @@ from flask_limiter.util import get_remote_address
 from app.api_proxy.auth import require_api_key
 from app.extensions import db, limiter
 from app.models import ApiJob
+from app.services.media_download import MediaDownloadError, download_media_url, validate_media_url
 from app.services.quotas import check_dub_quota, dub_quota_remaining
 from app.services.speechlab import SpeechLabClient
 from app.utils.dub_params import (
     build_dub_form_data,
+    close_file_handles,
     collect_multipart_files,
+    collect_multipart_files_from_paths,
     sanitize_upstream_json,
+    validate_video_file,
 )
 
 api_proxy_bp = Blueprint("api_proxy", __name__)
@@ -72,15 +77,25 @@ def health():
 
     try:
         data = SpeechLabClient().health(timeout=5)
-        public = {"status": data.get("status", "unknown"), "proxy": "vandum-client"}
+        public = {"status": data.get("status", "unknown"), "proxy": "dpunk-client"}
         if not is_production():
             public["upstream"] = data
         return jsonify(public)
     except Exception as exc:
-        body = {"status": "offline", "proxy": "vandum-client"}
+        body = {"status": "offline", "proxy": "dpunk-client"}
         if not is_production():
             body["error"] = str(exc)
         return jsonify(body), 503
+
+
+@api_proxy_bp.route("/api/v1/cast-voices")
+@require_api_key
+def cast_voices(api_key):
+    try:
+        resp = SpeechLabClient().list_cast_voices()
+        return _proxy_response(resp)
+    except Exception as exc:
+        return _json_error(str(exc), 502)
 
 
 @api_proxy_bp.route("/api/v1/dub", methods=["POST"])
@@ -96,26 +111,114 @@ def create_dub(api_key):
 
     client = SpeechLabClient()
     payload = {}
+    files = None
+    downloaded_paths = {}
+    temp_dir = None
 
-    if request.content_type and "multipart/form-data" in request.content_type:
-        payload = build_dub_form_data(formdata=request.form)
-        files = collect_multipart_files(request.files)
-        resp = client.create_dub(payload, files=files)
-    elif request.is_json:
-        payload = sanitize_upstream_json(request.get_json(silent=True) or {})
-        resp = client.create_dub_json(payload)
-    else:
-        payload = build_dub_form_data(formdata=request.form)
-        resp = client.create_dub(payload)
+    try:
+        if request.content_type and "multipart/form-data" in request.content_type:
+            video = request.files.get("video")
+            video_url = (request.form.get("video_url") or "").strip()
+            if video and video.filename and video_url:
+                return _json_error("Укажите либо video, либо video_url — не оба сразу.", 400)
+            if video and video.filename:
+                size_err = validate_video_file(
+                    video.filename,
+                    current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
+                    video,
+                )
+                if size_err:
+                    return _json_error(size_err, 413)
+            payload = build_dub_form_data(formdata=request.form)
+            files = collect_multipart_files(request.files) or {}
+            if video_url and "video" not in files:
+                err = validate_media_url(video_url)
+                if err:
+                    return _json_error(err, 400)
+                if not current_app.config.get("YTDLP_ENABLED", True):
+                    return _json_error("Загрузка по ссылке отключена на сервере.", 503)
+                temp_dir = tempfile.TemporaryDirectory(prefix="dpunk_ytdlp_")
+                try:
+                    path, _ = download_media_url(
+                        video_url,
+                        temp_dir.name,
+                        max_mb=current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
+                        timeout_sec=current_app.config.get("YTDLP_TIMEOUT_SEC", 600),
+                        max_duration_sec=current_app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
+                    )
+                except MediaDownloadError as exc:
+                    return _json_error(str(exc), 400)
+                downloaded_paths["video"] = path
+                video_files = collect_multipart_files_from_paths(downloaded_paths) or {}
+                files = {**files, **video_files}
+            resp = client.create_dub(payload, files=files or None)
+        elif request.is_json:
+            raw = request.get_json(silent=True) or {}
+            video_url = (raw.get("video_url") or "").strip() if isinstance(raw, dict) else ""
+            payload = sanitize_upstream_json(raw)
+            payload.pop("video_url", None)
+            if video_url:
+                if payload.get("video_path"):
+                    return _json_error("Укажите либо video_path, либо video_url.", 400)
+                err = validate_media_url(video_url)
+                if err:
+                    return _json_error(err, 400)
+                if not current_app.config.get("YTDLP_ENABLED", True):
+                    return _json_error("Загрузка по ссылке отключена на сервере.", 503)
+                temp_dir = tempfile.TemporaryDirectory(prefix="dpunk_ytdlp_")
+                try:
+                    path, _ = download_media_url(
+                        video_url,
+                        temp_dir.name,
+                        max_mb=current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
+                        timeout_sec=current_app.config.get("YTDLP_TIMEOUT_SEC", 600),
+                        max_duration_sec=current_app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
+                    )
+                except MediaDownloadError as exc:
+                    return _json_error(str(exc), 400)
+                downloaded_paths["video"] = path
+                files = collect_multipart_files_from_paths(downloaded_paths)
+                resp = client.create_dub(payload, files=files)
+            else:
+                resp = client.create_dub_json(payload)
+        else:
+            video_url = (request.form.get("video_url") or "").strip()
+            payload = build_dub_form_data(formdata=request.form)
+            if video_url:
+                err = validate_media_url(video_url)
+                if err:
+                    return _json_error(err, 400)
+                if not current_app.config.get("YTDLP_ENABLED", True):
+                    return _json_error("Загрузка по ссылке отключена на сервере.", 503)
+                temp_dir = tempfile.TemporaryDirectory(prefix="dpunk_ytdlp_")
+                try:
+                    path, _ = download_media_url(
+                        video_url,
+                        temp_dir.name,
+                        max_mb=current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
+                        timeout_sec=current_app.config.get("YTDLP_TIMEOUT_SEC", 600),
+                        max_duration_sec=current_app.config.get("YTDLP_MAX_DURATION_SEC", 3600),
+                    )
+                except MediaDownloadError as exc:
+                    return _json_error(str(exc), 400)
+                downloaded_paths["video"] = path
+                files = collect_multipart_files_from_paths(downloaded_paths)
+                resp = client.create_dub(payload, files=files)
+            else:
+                resp = client.create_dub(payload)
 
-    if resp.status_code in (200, 202):
-        try:
-            upstream = resp.json()
-            _register_job(api_key, payload, upstream)
-        except Exception:
-            pass
+        if resp.status_code in (200, 202):
+            try:
+                upstream = resp.json()
+                _register_job(api_key, payload, upstream)
+            except Exception:
+                pass
 
-    return _proxy_response(resp)
+        return _proxy_response(resp)
+    finally:
+        close_file_handles(files)
+        if temp_dir is not None:
+            temp_dir.cleanup()
 
 
 @api_proxy_bp.route("/api/v1/jobs")

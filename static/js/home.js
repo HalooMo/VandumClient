@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ── Typed hero text ──
-    const phrases = ['Любой язык.', 'Любой голос.', 'За минуты.', 'Без студии.', 'AI-powered.'];
+    const phrases = ['Получил MP4.', 'За минуты.', 'Без студии.', 'Минимум кликов.', 'Любой язык.'];
     const target = document.getElementById('typedTarget');
     if (target) {
         let pi = 0, ci = 0, deleting = false;

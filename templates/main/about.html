@@ -6,31 +6,31 @@
     <div class="about-hero-content" data-animate="fade-up">
         <span class="section-tag">Documentation</span>
         <h1 class="page-title" style="font-size:3rem;">О <span class="gradient-text">Dpunk</span></h1>
-        <p class="about-hero-sub">Платформа AI-дубляжа — многоголосый закадровый дубляж на GPU.</p>
+        <p class="about-hero-sub">Быстрый закадровый дубляж: загрузили файл — получили MP4. Минимум настроек, максимум скорости.</p>
     </div>
     <div class="about-hero-stats" data-animate="fade-up" data-delay="100">
         <div class="about-stat"><strong>{{ stats.users }}</strong><span>Users</span></div>
         <div class="about-stat"><strong>{{ stats.projects_done }}</strong><span>Dubbed</span></div>
         <div class="about-stat"><strong>12+</strong><span>Languages</span></div>
-        <div class="about-stat"><strong>500</strong><span>MB max</span></div>
+        <div class="about-stat"><strong>{{ max_upload_mb }}</strong><span>MB max</span></div>
     </div>
 </section>
 
 <section class="about-grid">
     <div class="about-card glass-card-holo tilt-card" data-animate="fade-up">
         <div class="about-card-icon">⚡</div>
-        <h2>SpeechLab Engine</h2>
-        <p>GPU-пайплайн на базе Whisper (ASR), LLM-перевода и Qwen3-TTS VoiceDesign. Одна задача на сервер — полная мощность GPU.</p>
+        <h2>Быстрый пайплайн</h2>
+        <p>Загрузка → распознавание → перевод → озвучка → MP4. Один проход на GPU, без ручной сборки.</p>
     </div>
     <div class="about-card glass-card-holo tilt-card" data-animate="fade-up" data-delay="80">
         <div class="about-card-icon">🎭</div>
-        <h2>Multi-Speaker Casting</h2>
-        <p>AI определяет спикеров через diarization и назначает уникальный голос каждому. Автоматически или через промпт.</p>
+        <h2>Авто по спикерам</h2>
+        <p>AI сам делит реплики и назначает голоса. Можно не трогать настройки — или подкрутить за минуту.</p>
     </div>
     <div class="about-card glass-card-holo tilt-card" data-animate="fade-up" data-delay="160">
         <div class="about-card-icon">🔧</div>
-        <h2>Гибкая настройка</h2>
-        <p>voice_gender, voice_age, voice_prompt, dub_volume_percent, original_audio_ratio — полный контроль через API и UI.</p>
+        <h2>Простота + API</h2>
+        <p>В UI — несколько полей. В API — тот же сценарий: dub → статус → download.</p>
     </div>
 </section>
 

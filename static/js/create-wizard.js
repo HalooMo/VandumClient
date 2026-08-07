@@ -14,6 +14,32 @@ document.addEventListener('DOMContentLoaded', () => {
         zh: '中文', ja: '日本語', ko: '한국어', ar: 'العربية',
     };
 
+    function mediaSource() {
+        return document.getElementById('mediaSource')?.value || 'file';
+    }
+
+    function setMediaSource(source) {
+        const hidden = document.getElementById('mediaSource');
+        const filePanel = document.getElementById('mediaSourceFile');
+        const urlPanel = document.getElementById('mediaSourceUrl');
+        const fileInput = document.getElementById('videoInput');
+        const urlInput = document.getElementById('wVideoUrl');
+        if (hidden) hidden.value = source;
+        if (filePanel) filePanel.hidden = source !== 'file';
+        if (urlPanel) urlPanel.hidden = source !== 'url';
+        document.querySelectorAll('.media-source-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.source === source);
+        });
+        if (source === 'url' && fileInput) {
+            fileInput.value = '';
+            const preview = document.getElementById('uploadPreview');
+            const content = document.querySelector('#uploadZone .upload-content');
+            if (preview) preview.hidden = true;
+            if (content) content.hidden = false;
+        }
+        if (source === 'file' && urlInput) urlInput.value = '';
+    }
+
     function syncAgeHidden(selector, hiddenId) {
         const checked = [...document.querySelectorAll(selector)]
             .filter(cb => cb.checked)
@@ -22,19 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.value = checked.join(',');
     }
 
-    function updateSileroVisibility() {
-        const tgt = document.getElementById('wTargetLang')?.value;
-        const block = document.getElementById('sileroBlock');
-        const speaker = document.getElementById('wSileroSpeaker');
-        const show = tgt === 'ru';
-        if (block) block.hidden = !show;
-        if (!show && speaker) {
-            speaker.value = '';
-            const allCb = document.getElementById('wSileroAll');
-            if (allCb) allCb.checked = false;
-            document.querySelectorAll('.age-cb-silero').forEach(cb => { cb.checked = false; });
-            syncAgeHidden('.age-cb-silero', 'sileroAgesHidden');
-        }
+    function updateCastVisibility() {
+        const mode = document.getElementById('wCastMode')?.value;
+        const voiceGroup = document.getElementById('castVoiceGroup');
+        const voice = document.getElementById('wCastVoice');
+        if (voiceGroup) voiceGroup.hidden = mode !== 'voice';
+        if (mode !== 'voice' && voice) voice.value = '';
     }
 
     function showStep(n) {
@@ -55,9 +74,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (n === 0) {
             const name = document.getElementById('wProjectName');
             const file = document.getElementById('videoInput');
+            const url = document.getElementById('wVideoUrl');
             if (!name.value.trim()) { name.focus(); return false; }
             if (!/^[a-zA-Z0-9_-]+$/.test(name.value)) { alert('Имя проекта: только a-z, 0-9, _ и -'); return false; }
-            if (!file.files.length) { alert('Загрузите видео или аудио файл'); return false; }
+            if (mediaSource() === 'url') {
+                const u = (url?.value || '').trim();
+                if (!u) { alert('Вставьте ссылку на видео или аудио'); url?.focus(); return false; }
+                if (!/^https?:\/\//i.test(u)) { alert('Ссылка должна начинаться с http:// или https://'); url?.focus(); return false; }
+            } else if (!file?.files?.length) {
+                alert('Загрузите видео или аудио файл');
+                return false;
+            }
+        }
+        if (n === 2) {
+            const mode = document.getElementById('wCastMode')?.value;
+            const voice = document.getElementById('wCastVoice')?.value;
+            if (mode === 'voice' && !voice) {
+                alert('Выберите cast-голос или другой режим');
+                document.getElementById('wCastVoice')?.focus();
+                return false;
+            }
         }
         if (n === 3) {
             const male = document.getElementById('voiceSampleMale');
@@ -77,10 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateReview() {
         syncAgeHidden('.age-cb-male', 'maleAgesHidden');
         syncAgeHidden('.age-cb-female', 'femaleAgesHidden');
-        syncAgeHidden('.age-cb-silero', 'sileroAgesHidden');
 
         const name = document.getElementById('wProjectName')?.value || '—';
         const file = document.getElementById('videoInput')?.files[0];
+        const url = (document.getElementById('wVideoUrl')?.value || '').trim();
         const src = document.getElementById('wSourceLang');
         const tgt = document.getElementById('wTargetLang');
         const gender = document.getElementById('wGender');
@@ -90,11 +126,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const temp = document.getElementById('wTemperature');
         const maleSample = document.getElementById('voiceSampleMale')?.files[0];
         const femaleSample = document.getElementById('voiceSampleFemale')?.files[0];
-        const sileroSpeaker = document.getElementById('wSileroSpeaker');
-        const sileroAll = document.getElementById('wSileroAll');
+        const castMode = document.getElementById('wCastMode');
+        const castVoice = document.getElementById('wCastVoice');
 
         document.getElementById('rvName').textContent = name;
-        document.getElementById('rvFile').textContent = file ? `${file.name} (${(file.size / 1048576).toFixed(1)} MB)` : '—';
+        if (mediaSource() === 'url' && url) {
+            const short = url.length > 64 ? url.slice(0, 61) + '…' : url;
+            document.getElementById('rvFile').textContent = short;
+        } else {
+            document.getElementById('rvFile').textContent = file
+                ? `${file.name} (${(file.size / 1048576).toFixed(1)} MB)`
+                : '—';
+        }
         document.getElementById('rvLang').textContent = `${langNames[src?.value] || src?.value} → ${langNames[tgt?.value] || tgt?.value}`;
         let voice = gender?.value || 'auto';
         if (age?.value) voice += `, age ${age.value}`;
@@ -103,12 +146,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('rvVol').textContent = (vol?.value || 100) + '%';
         document.getElementById('rvRatio').textContent = (ratio?.value || 30) + '%';
 
-        let sileroText = '—';
-        if (tgt?.value === 'ru' && sileroSpeaker?.value) {
-            sileroText = sileroSpeaker.value;
-            if (sileroAll?.checked) sileroText += ', все реплики';
-        }
-        document.getElementById('rvSilero').textContent = sileroText;
+        const castNames = { loki: 'Локи', tom_hardy: 'Том Харди', thor: 'Тор' };
+        let castText = '—';
+        if (castMode?.value === 'speakers') castText = 'speakers (3 голоса)';
+        else if (castMode?.value === 'voice' && castVoice?.value) castText = castNames[castVoice.value] || castVoice.value;
+        document.getElementById('rvCast').textContent = castText;
 
         const cloneParts = [];
         if (maleSample) cloneParts.push(`♂ ${maleSample.name}`);
@@ -141,11 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('wSourceLang')?.addEventListener('change', updateLangPreview);
-    document.getElementById('wTargetLang')?.addEventListener('change', () => {
-        updateLangPreview();
-        updateSileroVisibility();
+    document.querySelectorAll('.media-source-btn').forEach(btn => {
+        btn.addEventListener('click', () => setMediaSource(btn.dataset.source));
     });
+
+    document.getElementById('wSourceLang')?.addEventListener('change', updateLangPreview);
+    document.getElementById('wTargetLang')?.addEventListener('change', updateLangPreview);
 
     document.getElementById('wVolume')?.addEventListener('input', (e) => {
         document.getElementById('wVolLabel').textContent = e.target.value;
@@ -158,11 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('wTempLabel').textContent = e.target.value;
     });
 
-    document.querySelectorAll('.age-cb-male, .age-cb-female, .age-cb-silero').forEach(cb => {
+    document.querySelectorAll('.age-cb-male, .age-cb-female').forEach(cb => {
         cb.addEventListener('change', () => {
             syncAgeHidden('.age-cb-male', 'maleAgesHidden');
             syncAgeHidden('.age-cb-female', 'femaleAgesHidden');
-            syncAgeHidden('.age-cb-silero', 'sileroAgesHidden');
         });
     });
 
@@ -176,14 +218,16 @@ document.addEventListener('DOMContentLoaded', () => {
     form?.addEventListener('submit', () => {
         syncAgeHidden('.age-cb-male', 'maleAgesHidden');
         syncAgeHidden('.age-cb-female', 'femaleAgesHidden');
-        syncAgeHidden('.age-cb-silero', 'sileroAgesHidden');
         const overlay = document.createElement('div');
         overlay.className = 'submit-overlay';
+        const hint = mediaSource() === 'url'
+            ? 'Скачиваем медиа по ссылке и запускаем дубляж…'
+            : 'Сохраняем файлы и переходим на страницу проекта';
         overlay.innerHTML = `
             <div class="submit-overlay-card glass-card">
                 <div class="submit-spinner"></div>
                 <p>Запускаем дубляж…</p>
-                <span class="form-hint">Сохраняем файлы и переходим на страницу проекта</span>
+                <span class="form-hint">${hint}</span>
             </div>`;
         document.body.appendChild(overlay);
         submitBtn.disabled = true;
@@ -191,8 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
         prevBtn.disabled = true;
     });
 
+    document.getElementById('wCastMode')?.addEventListener('change', updateCastVisibility);
+
+    setMediaSource('file');
     updateLangPreview();
-    updateSileroVisibility();
+    updateCastVisibility();
     showStep(0);
 });
-

@@ -11,17 +11,34 @@
                     <span class="form-hint">Только a-z, 0-9, _ и -</span>
                 {% endif %}
             </div>
-            <div class="upload-zone" id="uploadZone">
-                <input type="file" name="video" id="videoInput" accept=".mp4,.mkv,.mov,.avi,.webm,.wav,.mp3,.m4a" required>
-                <div class="upload-content">
-                    <div class="upload-icon">🎬</div>
-                    <p>Перетащите файл или <span class="upload-link">выберите</span></p>
-                    <p class="upload-hint">MP4, MKV, MOV, AVI, WebM, WAV, MP3, M4A — до 500 МБ</p>
+            <div class="media-source-toggle" id="mediaSourceToggle" role="tablist">
+                <button type="button" class="media-source-btn active" data-source="file" id="sourceFileBtn">Файл</button>
+                <button type="button" class="media-source-btn" data-source="url" id="sourceUrlBtn">Ссылка</button>
+            </div>
+            <input type="hidden" name="media_source" id="mediaSource" value="file">
+
+            <div id="mediaSourceFile">
+                <div class="upload-zone" id="uploadZone" data-max-mb="{{ max_upload_mb }}">
+                    <input type="file" name="video" id="videoInput" accept=".mp4,.mkv,.mov,.avi,.webm,.wav,.mp3,.m4a">
+                    <div class="upload-content">
+                        <div class="upload-icon">🎬</div>
+                        <p>Перетащите файл или <span class="upload-link">выберите</span></p>
+                        <p class="upload-hint">MP4, MKV, MOV, AVI, WebM, WAV, MP3, M4A — до {{ max_upload_mb }} МБ</p>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview" hidden>
+                        <span id="fileName"></span>
+                        <span id="fileSize" class="upload-size"></span>
+                        <button type="button" class="upload-clear" id="clearFile">×</button>
+                    </div>
                 </div>
-                <div class="upload-preview" id="uploadPreview" hidden>
-                    <span id="fileName"></span>
-                    <span id="fileSize" class="upload-size"></span>
-                    <button type="button" class="upload-clear" id="clearFile">×</button>
+            </div>
+
+            <div id="mediaSourceUrl" hidden>
+                <div class="form-group">
+                    {{ form.video_url.label(class="form-label") }}
+                    {{ form.video_url(class="form-input", id="wVideoUrl") }}
+                    <span class="form-hint">YouTube и другие сайты через yt-dlp, либо прямая https-ссылка на файл. До {{ max_upload_mb }} МБ после скачивания.</span>
+                    {% for e in form.video_url.errors %}<span class="form-error">{{ e }}</span>{% endfor %}
                 </div>
             </div>
         </div>
@@ -46,7 +63,7 @@
         </div>
 
         <div class="wizard-panel" data-panel="2">
-            <h3 class="form-section-title">Шаг 3 — VoiceDesign <span class="form-section-hint">(опционально)</span></h3>
+            <h3 class="form-section-title">Шаг 3 — VoiceDesign <span class="form-section-hint">(качество голосов при использовании промптов может быть не идеальным)</span></h3>
             <div class="form-row form-row-2">
                 <div class="form-group">
                     {{ form.voice_gender.label(class="form-label") }}
@@ -78,32 +95,18 @@
                 </div>
             </div>
 
-            <div class="voice-silero-block" id="sileroBlock" hidden>
-                <h4 class="voice-clone-title">Silero TTS <span class="form-section-hint">(только RU)</span></h4>
-                <p class="form-hint" style="margin-bottom:0.75rem;">Готовые русские голоса — быстрее Qwen. Можно комбинировать с VoiceDesign и клоном.</p>
+            <div class="voice-cast-block" id="castBlock">
+                <h4 class="voice-clone-title">Встроенные cast-голоса <span class="form-section-hint">(опционально)</span></h4>
+                <p class="form-hint" style="margin-bottom:0.75rem;">Готовые клоны на сервере: Локи, Том Харди, Тор. Не нужно загружать файл. Нельзя комбинировать оба режима сразу.</p>
                 <div class="form-row form-row-2">
                     <div class="form-group">
-                        {{ form.silero_speaker.label(class="form-label") }}
-                        {{ form.silero_speaker(class="form-input form-select", id="wSileroSpeaker") }}
+                        {{ form.cast_mode.label(class="form-label") }}
+                        {{ form.cast_mode(class="form-input form-select", id="wCastMode") }}
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">&nbsp;</label>
-                        <label class="checkbox-inline">
-                            {{ form.silero_all_replicas(id="wSileroAll") }}
-                            {{ form.silero_all_replicas.label.text }}
-                        </label>
+                    <div class="form-group" id="castVoiceGroup">
+                        {{ form.cast_voice.label(class="form-label") }}
+                        {{ form.cast_voice(class="form-input form-select", id="wCastVoice") }}
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Возрастные группы Silero</label>
-                    <div class="age-checkboxes">
-                        <label><input type="checkbox" value="child" class="age-cb-silero" {% if 'child' in silero_ages|default([]) %}checked{% endif %}> Ребёнок</label>
-                        <label><input type="checkbox" value="teenager" class="age-cb-silero" {% if 'teenager' in silero_ages|default([]) %}checked{% endif %}> Подросток</label>
-                        <label><input type="checkbox" value="mature" class="age-cb-silero" {% if 'mature' in silero_ages|default([]) %}checked{% endif %}> Взрослый</label>
-                        <label><input type="checkbox" value="elderly" class="age-cb-silero" {% if 'elderly' in silero_ages|default([]) %}checked{% endif %}> Пожилой</label>
-                    </div>
-                    <span class="form-hint">Пусто = все 4 группы. Не влияет при «все реплики одним спикером».</span>
-                    <input type="hidden" name="silero_age_groups" id="sileroAgesHidden" value="{{ voice_opts.get('silero_age_groups', '') if voice_opts is defined else '' }}">
                 </div>
             </div>
         </div>
@@ -164,7 +167,7 @@
                 <div class="wizard-preview-row"><span>Файл</span><strong id="rvFile">—</strong></div>
                 <div class="wizard-preview-row"><span>Языки</span><strong id="rvLang">—</strong></div>
                 <div class="wizard-preview-row"><span>Голос</span><strong id="rvVoice">auto</strong></div>
-                <div class="wizard-preview-row"><span>Silero</span><strong id="rvSilero">—</strong></div>
+                <div class="wizard-preview-row"><span>Cast</span><strong id="rvCast">—</strong></div>
                 <div class="wizard-preview-row"><span>TTS temp</span><strong id="rvTemp">0.72</strong></div>
                 <div class="wizard-preview-row"><span>Клон</span><strong id="rvClone">—</strong></div>
                 <div class="wizard-preview-row"><span>Громкость</span><strong id="rvVol">100%</strong></div>

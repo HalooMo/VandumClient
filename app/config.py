@@ -65,9 +65,14 @@ class Config:
     # SpeechLab API
     SPEECHLAB_BASE_URL = os.environ.get("SPEECHLAB_BASE_URL", "https://app.vandum.ru").rstrip("/")
     SPEECHLAB_API_KEY = os.environ.get("SPEECHLAB_API_KEY", "")
-    SPEECHLAB_MAX_UPLOAD_MB = int(os.environ.get("SPEECHLAB_MAX_UPLOAD_MB", "500"))
+    SPEECHLAB_MAX_UPLOAD_MB = int(os.environ.get("SPEECHLAB_MAX_UPLOAD_MB", "150"))
     VOICE_SAMPLE_MAX_MB = int(os.environ.get("VOICE_SAMPLE_MAX_MB", "10"))
     MAX_CONTENT_LENGTH = (SPEECHLAB_MAX_UPLOAD_MB + VOICE_SAMPLE_MAX_MB * 2 + 5) * 1024 * 1024
+
+    # yt-dlp: download media by URL (YouTube etc.) before forwarding to SpeechLab
+    YTDLP_ENABLED = os.environ.get("YTDLP_ENABLED", "true").lower() in ("1", "true", "yes")
+    YTDLP_TIMEOUT_SEC = int(os.environ.get("YTDLP_TIMEOUT_SEC", "600"))
+    YTDLP_MAX_DURATION_SEC = int(os.environ.get("YTDLP_MAX_DURATION_SEC", "3600"))
 
     # Mail
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "localhost")

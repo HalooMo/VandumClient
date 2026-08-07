@@ -9,6 +9,7 @@ NAV_ACTIVE_MAP = {
         "projects.list_projects",
         "projects.detail",
         "projects.download",
+        "projects.stream",
         "projects.status_api",
         "projects.status_batch",
     }),

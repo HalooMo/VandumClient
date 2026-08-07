@@ -1,13 +1,13 @@
-# Dpunk — Web Client for AI Dubbing
+# Dpunk — быстрый AI-дубляж
 
-Клиентское веб-приложение для сервиса AI-дубляжа SpeechLab (https://app.vandum.ru).
+Веб-клиент для закадрового дубляжа: загрузили файл — получили MP4. Акцент на скорости и простоте.
 
 ## Возможности
 
 - Футуристичный современный UI
 - Регистрация / вход по email с подтверждением почты
 - Авторизация через Google OAuth
-- Создание проектов дубляжа (загрузка видео, настройка голоса)
+- Создание проектов дубляжа (файл или ссылка YouTube/др. через yt-dlp, настройка голоса)
 - Отслеживание статуса задач в реальном времени
 - Скачивание готового MP4
 - Админ-панель управления пользователями
@@ -47,6 +47,24 @@ docker compose up -d --build
 | `GOOGLE_CLIENT_ID/SECRET` | Google OAuth credentials |
 | `APP_URL` | Публичный URL приложения (для OAuth и email ссылок) |
 | `ADMIN_EMAIL/PASSWORD` | Первый администратор (создаётся автоматически) |
+| `YTDLP_ENABLED` | Разрешить загрузку медиа по URL (`true`/`false`) |
+| `YTDLP_TIMEOUT_SEC` | Таймаут сокетов/ожидания скачивания (сек) |
+| `YTDLP_MAX_DURATION_SEC` | Макс. длина ролика в секундах (0 = без лимита) |
+| `SPEECHLAB_MAX_UPLOAD_MB` | Лимит размера файла после скачивания / upload |
+
+### URL через yt-dlp
+
+На шаге 1 визарда можно выбрать **Ссылка** вместо файла. Dpunk скачивает медиа через `yt-dlp`, затем отправляет файл в SpeechLab как обычно.
+
+На сервере нужно:
+
+```bash
+pip install -r requirements.txt
+# для склейки video+audio с YouTube:
+sudo apt install -y ffmpeg
+```
+
+API: поле `video_url` в multipart или JSON (`POST /api/v1/dub`) вместо `video` / `video_path`.
 
 ## Google OAuth
 

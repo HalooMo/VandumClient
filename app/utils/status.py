@@ -8,7 +8,7 @@ STATUS_LABELS = {
 }
 
 DETAIL_STATUS_LABELS = {
-    "uploading": "Загрузка файла",
+    "uploading": "Скачивание / загрузка",
     "pending": "Ожидание",
     "queued": "В очереди",
     "running": "Выполняется",

@@ -27,6 +27,8 @@ TEXT_FIELDS = (
     "voice_sample_male_ref_text",
     "voice_sample_female_ref_text",
     "voice_clone_samples",
+    "cast_voice",
+    "cast_mode",
     "silero_speaker",
     "silero_all_replicas",
     "silero_age_groups",
@@ -34,6 +36,21 @@ TEXT_FIELDS = (
 )
 
 SILERO_SPEAKERS = frozenset({"aidar", "baya", "eugene", "kseniya", "xenia"})
+CAST_VOICE_IDS = frozenset({"loki", "tom_hardy", "thor"})
+CAST_VOICE_ALIASES = {
+    "loki": "loki",
+    "локи": "loki",
+    "tom_hardy": "tom_hardy",
+    "tom hardy": "tom_hardy",
+    "том харди": "tom_hardy",
+    "thor": "thor",
+    "тор": "thor",
+}
+CAST_VOICES = (
+    {"id": "loki", "name": "Локи"},
+    {"id": "tom_hardy", "name": "Том Харди"},
+    {"id": "thor", "name": "Тор"},
+)
 RU_TARGET_LANGUAGES = frozenset({"ru", "russian"})
 VOICE_PROMPT_SUFFIX = " Gender is {gender_hint}, language is {lang}. Age is {age_hint}."
 _COMPOSED_VOICE_PROMPT_RE = re.compile(
@@ -72,6 +89,36 @@ def _strip_silero_if_not_ru(data):
         return data
     for key in ("silero_speaker", "silero_all_replicas", "silero_age_groups", "silero_voices"):
         data.pop(key, None)
+    return data
+
+
+def _normalize_cast_voice(raw):
+    cleaned = _clean_text(raw)
+    if not cleaned:
+        return None
+    key = cleaned.lower().replace("ё", "е")
+    mapped = CAST_VOICE_ALIASES.get(key)
+    if mapped:
+        return mapped
+    if key in CAST_VOICE_IDS:
+        return key
+    return cleaned
+
+
+def _normalize_cast_fields(data):
+    """cast_voice and cast_mode=speakers are mutually exclusive."""
+    mode = (_clean_text(data.get("cast_mode")) or "").lower()
+    voice = _normalize_cast_voice(data.get("cast_voice"))
+
+    if mode == "speakers":
+        data["cast_mode"] = "speakers"
+        data.pop("cast_voice", None)
+    elif voice:
+        data["cast_voice"] = voice
+        data.pop("cast_mode", None)
+    else:
+        data.pop("cast_mode", None)
+        data.pop("cast_voice", None)
     return data
 
 
@@ -115,6 +162,8 @@ def build_dub_form_data(form=None, formdata=None):
             "voice_sample_female_ref_text": getattr(form, "voice_sample_female_ref_text", None)
             and form.voice_sample_female_ref_text.data,
             "silero_speaker": getattr(form, "silero_speaker", None) and form.silero_speaker.data,
+            "cast_voice": getattr(form, "cast_voice", None) and form.cast_voice.data,
+            "cast_mode": getattr(form, "cast_mode", None) and form.cast_mode.data,
         }
         for key, value in mapping.items():
             cleaned = _clean_text(value)
@@ -128,6 +177,20 @@ def build_dub_form_data(form=None, formdata=None):
         silero_all = getattr(form, "silero_all_replicas", None)
         if silero_all is not None and silero_all.data:
             data["silero_all_replicas"] = "true"
+
+        # Form uses cast_mode=voice|speakers|""; upstream wants cast_voice XOR cast_mode=speakers
+        form_cast_mode = (getattr(form, "cast_mode", None) and form.cast_mode.data or "").strip().lower()
+        form_cast_voice = getattr(form, "cast_voice", None) and form.cast_voice.data
+        if form_cast_mode == "speakers":
+            data["cast_mode"] = "speakers"
+            data.pop("cast_voice", None)
+        elif form_cast_mode == "voice" and form_cast_voice:
+            data["cast_voice"] = form_cast_voice
+            data.pop("cast_mode", None)
+        else:
+            data.pop("cast_mode", None)
+            if form_cast_mode == "voice":
+                data.pop("cast_voice", None)
 
     for key in TEXT_FIELDS:
         if key in data:
@@ -153,6 +216,13 @@ def build_dub_form_data(form=None, formdata=None):
                 cleaned = _normalize_ages(cleaned)
                 if cleaned:
                     data[key] = cleaned
+            elif key == "cast_mode":
+                if cleaned.lower() == "speakers":
+                    data[key] = "speakers"
+            elif key == "cast_voice":
+                normalized = _normalize_cast_voice(cleaned)
+                if normalized:
+                    data[key] = normalized
             else:
                 data[key] = cleaned
 
@@ -164,6 +234,7 @@ def build_dub_form_data(form=None, formdata=None):
     if data.get("voice_prompt") and not data.get("voice_design_prompt"):
         data["voice_design_prompt"] = data["voice_prompt"]
 
+    data = _normalize_cast_fields(data)
     return _strip_silero_if_not_ru(data)
 
 
@@ -338,12 +409,17 @@ def build_voice_options_json(formdata, sample_meta):
         "silero_speaker",
         "silero_all_replicas",
         "silero_age_groups",
+        "cast_voice",
+        "cast_mode",
+        "video_url",
     ):
         val = _clean_text(formdata.get(key))
         if key.endswith("_ages"):
             val = _normalize_ages(val)
         if key == "silero_all_replicas":
             val = "true" if val and _truthy_form_value(val) else None
+        if key == "video_url" and val and len(val) > 500:
+            val = val[:497] + "..."
         if val:
             options[key] = val
     if sample_meta.get("male"):

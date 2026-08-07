@@ -19,6 +19,7 @@ from app.decorators import verified_required
 from app.extensions import db
 from app.forms import CreateProjectForm
 from app.models import Project
+from app.services.media_download import validate_media_url
 from app.services.project_worker import start_background_upload
 from app.services.quotas import check_dub_quota, dub_quota_remaining
 from app.services.speechlab import SpeechLabClient
@@ -45,26 +46,54 @@ def _populate_language_choices(form):
 
 
 def _collect_uploads(form, project_name):
+    """Collect local file and/or video_url. Returns (file_paths, payload, voice_options, video_url, session_dir, original_filename, err)."""
     video = request.files.get("video")
-    if not video or not video.filename:
-        return None, None, None, "Загрузите видео или аудио файл."
+    has_file = bool(video and video.filename)
+    video_url = (getattr(form, "video_url", None) and form.video_url.data or "").strip()
+    if not video_url:
+        video_url = (request.form.get("video_url") or "").strip()
 
-    err = validate_video_file(video.filename, current_app.config["SPEECHLAB_MAX_UPLOAD_MB"], video)
-    if err:
-        return None, None, None, err
+    if has_file and video_url:
+        return None, None, None, None, None, None, "Укажите либо файл, либо ссылку — не оба сразу."
+    if not has_file and not video_url:
+        return None, None, None, None, None, None, "Загрузите файл или вставьте ссылку на медиа."
+
+    if video_url:
+        if not current_app.config.get("YTDLP_ENABLED", True):
+            return None, None, None, None, None, None, "Загрузка по ссылке отключена на сервере."
+        url_err = validate_media_url(video_url)
+        if url_err:
+            return None, None, None, None, None, None, url_err
 
     upload_root = Path(current_app.config["UPLOAD_FOLDER"])
     user_dir = upload_root / str(current_user.id)
     session_dir = user_dir / "pending" / re.sub(r"[^a-zA-Z0-9_-]", "_", project_name)
     session_dir.mkdir(parents=True, exist_ok=True)
 
-    video_path, err = save_upload_file(
-        video, session_dir, "video", VIDEO_EXTENSIONS, current_app.config["SPEECHLAB_MAX_UPLOAD_MB"]
-    )
-    if err:
-        return None, None, None, err
+    file_paths = {}
+    original_filename = None
 
-    file_paths = {"video": video_path}
+    if has_file:
+        err = validate_video_file(
+            video.filename, current_app.config["SPEECHLAB_MAX_UPLOAD_MB"], video
+        )
+        if err:
+            return None, None, None, None, None, None, err
+        video_path, err = save_upload_file(
+            video,
+            session_dir,
+            "video",
+            VIDEO_EXTENSIONS,
+            current_app.config["SPEECHLAB_MAX_UPLOAD_MB"],
+        )
+        if err:
+            return None, None, None, None, None, None, err
+        file_paths["video"] = video_path
+        original_filename = video.filename
+        video_url = None
+    else:
+        original_filename = video_url[:200]
+
     sample_meta = {}
     max_sample = current_app.config["VOICE_SAMPLE_MAX_MB"]
 
@@ -73,29 +102,32 @@ def _collect_uploads(form, project_name):
         if sample and sample.filename:
             serr = validate_sample_file(sample.filename, max_sample, sample)
             if serr:
-                return None, None, None, serr
+                return None, None, None, None, None, None, serr
             spath, serr = save_upload_file(
                 sample, session_dir, field, SAMPLE_EXTENSIONS, max_sample
             )
             if serr:
-                return None, None, None, serr
+                return None, None, None, None, None, None, serr
             file_paths[field] = spath
             sample_meta[key] = sample.filename
 
     payload = build_dub_form_data(form, request.form)
-    voice_options = build_voice_options_json(request.form, sample_meta)
+    formdata = request.form.to_dict()
+    if video_url:
+        formdata["video_url"] = video_url
+    voice_options = build_voice_options_json(formdata, sample_meta)
 
-    return file_paths, payload, voice_options, None
+    return file_paths, payload, voice_options, video_url, str(session_dir), original_filename, None
 
 
-def _apply_project_fields(project, form, voice_options):
+def _apply_project_fields(project, form, voice_options, original_filename):
     project.source_language = form.source_language.data
     project.target_language = form.target_language.data
     project.voice_gender = form.voice_gender.data or None
     project.voice_age = form.voice_age.data
     project.voice_prompt = form.voice_prompt.data or None
     project.voice_options = voice_options
-    project.original_filename = request.files.get("video").filename
+    project.original_filename = original_filename
     project.error_message = None
     project.finished_at = None
 
@@ -105,14 +137,22 @@ def _start_project(form, existing=None):
         _, limit = dub_quota_remaining(current_user.id)
         return None, f"Дневной лимит задач ({limit}) исчерпан. Попробуйте завтра."
 
-    file_paths, payload, voice_options, err = _collect_uploads(form, form.project_name.data)
+    (
+        file_paths,
+        payload,
+        voice_options,
+        video_url,
+        session_dir,
+        original_filename,
+        err,
+    ) = _collect_uploads(form, form.project_name.data)
     if err:
         return None, err
 
     if existing:
         existing.job_id = None
         existing.status = "uploading"
-        _apply_project_fields(existing, form, voice_options)
+        _apply_project_fields(existing, form, voice_options, original_filename)
         project = existing
     else:
         project = Project(
@@ -125,7 +165,7 @@ def _start_project(form, existing=None):
             voice_age=form.voice_age.data,
             voice_prompt=form.voice_prompt.data or None,
             voice_options=voice_options,
-            original_filename=request.files.get("video").filename,
+            original_filename=original_filename,
         )
         db.session.add(project)
 
@@ -136,6 +176,8 @@ def _start_project(form, existing=None):
         project.id,
         file_paths,
         payload,
+        video_url=video_url,
+        session_dir=session_dir,
     )
     return project, None
 
@@ -252,6 +294,15 @@ def edit(project_id):
         form.voice_sample_female_ref_text.data = opts.get("voice_sample_female_ref_text", "")
         form.silero_speaker.data = opts.get("silero_speaker", "")
         form.silero_all_replicas.data = str(opts.get("silero_all_replicas", "")).lower() in ("1", "true", "yes")
+        if opts.get("cast_mode") == "speakers":
+            form.cast_mode.data = "speakers"
+            form.cast_voice.data = ""
+        elif opts.get("cast_voice"):
+            form.cast_mode.data = "voice"
+            form.cast_voice.data = opts.get("cast_voice", "")
+        else:
+            form.cast_mode.data = ""
+            form.cast_voice.data = ""
 
     if form.validate_on_submit():
         if form.project_name.data != project.project_name:
@@ -322,15 +373,36 @@ def status_api(project_id):
 @login_required
 @verified_required
 def download(project_id):
+    return _proxy_result_media(project_id, disposition="attachment")
+
+
+@projects_bp.route("/<int:project_id>/stream")
+@login_required
+@verified_required
+def stream(project_id):
+    """Inline MP4 stream for in-browser player (supports Range when upstream does)."""
+    return _proxy_result_media(project_id, disposition="inline")
+
+
+def _proxy_result_media(project_id, disposition="attachment"):
     project = Project.query.filter_by(id=project_id, user_id=current_user.id).first_or_404()
     if project.status != "done" or not project.job_id:
+        if disposition == "inline":
+            return Response("Результат ещё не готов", status=404)
         flash("Результат ещё не готов.", "warning")
         return redirect(url_for("projects.detail", project_id=project.id))
 
     try:
+        extra = {}
+        range_header = request.headers.get("Range")
+        if range_header:
+            extra["Range"] = range_header
+
         client = SpeechLabClient()
-        resp = client.download_job(project.job_id)
-        if resp.status_code != 200:
+        resp = client.download_job(project.job_id, extra_headers=extra or None)
+        if resp.status_code not in (200, 206):
+            if disposition == "inline":
+                return Response("Не удалось загрузить видео", status=502)
             flash("Не удалось скачать файл.", "error")
             return redirect(url_for("projects.detail", project_id=project.id))
 
@@ -341,11 +413,25 @@ def download(project_id):
                 if chunk:
                     yield chunk
 
+        headers = {
+            "Content-Disposition": f'{disposition}; filename="{filename}"',
+            "Cache-Control": "private, max-age=3600",
+        }
+        for key in ("Content-Length", "Content-Range", "Accept-Ranges"):
+            val = resp.headers.get(key)
+            if val:
+                headers[key] = val
+        if "Accept-Ranges" not in headers and resp.status_code == 200:
+            headers["Accept-Ranges"] = "bytes"
+
         return Response(
             generate(),
-            mimetype="video/mp4",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            status=resp.status_code,
+            mimetype=resp.headers.get("Content-Type", "video/mp4"),
+            headers=headers,
         )
     except Exception as e:
+        if disposition == "inline":
+            return Response(str(e), status=502)
         flash(f"Ошибка скачивания: {e}", "error")
         return redirect(url_for("projects.detail", project_id=project.id))

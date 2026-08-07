@@ -533,6 +533,33 @@ body {
 .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
 .create-form { max-width: 720px; margin: 0 auto 4rem; padding: 2rem; }
 
+/* Media source toggle (file / URL) */
+.media-source-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.media-source-btn {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.media-source-btn:hover {
+    border-color: var(--cyan);
+    color: var(--text);
+}
+.media-source-btn.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0, 240, 255, 0.06);
+}
+
 /* Upload zone */
 .upload-zone {
     position: relative;
@@ -643,6 +670,124 @@ body {
 .detail-list dt { color: var(--text-muted); }
 .detail-list code { font-size: 0.8rem; word-break: break-all; }
 .text-error { color: var(--red); }
+
+/* Result video player (Plyr) — fit to viewport */
+.result-player-section {
+    width: 100%;
+    max-width: min(960px, 100%, calc(70dvh * 16 / 9));
+    margin: 0 auto 1.5rem;
+    padding: 0 2rem;
+    box-sizing: border-box;
+}
+.result-player-card {
+    padding: 1.25rem 1.25rem 1.5rem;
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    box-shadow: 0 0 40px rgba(0, 240, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.result-player-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+.result-player-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+}
+.result-player-tag {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cyan);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+}
+.result-player-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+.result-plyr-wrap {
+    width: 100%;
+    max-height: min(70dvh, calc(100dvh - var(--nav-h) - 11rem));
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #05050c;
+}
+
+.result-plyr-wrap .plyr {
+    --plyr-color-main: #00f0ff;
+    --plyr-video-background: #05050c;
+    --plyr-menu-background: rgba(10, 10, 18, 0.96);
+    --plyr-menu-color: #e8e8f0;
+    --plyr-control-icon-size: 18px;
+    --plyr-control-spacing: 12px;
+    --plyr-control-radius: 10px;
+    --plyr-range-fill-background: linear-gradient(90deg, #00f0ff, #7b2ff7);
+    --plyr-video-control-background-hover: rgba(0, 240, 255, 0.16);
+    --plyr-video-control-color: #e8e8f0;
+    --plyr-video-control-color-hover: #00f0ff;
+    --plyr-tooltip-background: rgba(6, 6, 11, 0.95);
+    --plyr-tooltip-color: #e8e8f0;
+    --plyr-audio-controls-background: #0a0a12;
+    height: 100%;
+    max-height: inherit;
+    border-radius: 14px;
+    font-family: var(--font);
+}
+.result-plyr-wrap .plyr__video-wrapper {
+    height: 100% !important;
+    max-height: inherit;
+    background: #05050c;
+}
+.result-plyr-wrap .plyr__video-wrapper video,
+.result-plyr-wrap video {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: min(70dvh, calc(100dvh - var(--nav-h) - 11rem));
+    object-fit: contain;
+    background: #05050c;
+}
+.result-plyr-wrap .plyr--video .plyr__controls {
+    background: linear-gradient(transparent, rgba(6, 6, 11, 0.92) 40%);
+    padding: 1.25rem 1rem 0.85rem;
+}
+.result-plyr-wrap .plyr__control--overlaid {
+    background: rgba(0, 240, 255, 0.92);
+    color: #061018;
+    box-shadow: 0 0 28px rgba(0, 240, 255, 0.45);
+}
+.result-plyr-wrap .plyr__control--overlaid:hover {
+    background: #fff;
+}
+.result-plyr-wrap .plyr__progress__buffer {
+    color: rgba(0, 240, 255, 0.25);
+}
+.result-plyr-wrap .plyr__menu__container .plyr__control[role="menuitemradio"][aria-checked="true"]::before {
+    background: var(--cyan);
+}
+
+@media (max-width: 768px) {
+    .result-player-section {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+    .result-plyr-wrap {
+        max-height: min(55dvh, calc(100dvh - var(--nav-h) - 9rem));
+        aspect-ratio: 16 / 9;
+    }
+    .result-plyr-wrap .plyr__video-wrapper video,
+    .result-plyr-wrap video {
+        max-height: min(55dvh, calc(100dvh - var(--nav-h) - 9rem));
+    }
+}
+
 .back-link {
     display: inline-block;
     margin: 0 2rem 4rem;

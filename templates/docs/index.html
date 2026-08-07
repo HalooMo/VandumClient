@@ -95,7 +95,7 @@
 {% block content %}
 <section class="page-header">
     <h1 class="page-title">Документация <span class="gradient-text">API</span></h1>
-    <p class="page-subtitle">REST API для AI-дубляжа SpeechLab · базовый URL: <code>{{ api_base_url }}</code></p>
+    <p class="page-subtitle">REST API: загрузка → статус → MP4 · базовый URL: <code>{{ api_base_url }}</code></p>
 </section>
 
 <div class="docs-layout">
@@ -105,6 +105,7 @@
         <a href="#dub">Запуск дубляжа</a>
         <a href="#params">Параметры</a>
         <a href="#clone">Клон голоса</a>
+        <a href="#cast">Cast-голоса</a>
         <a href="#silero">Silero TTS</a>
         <a href="#jobs">Статус и список</a>
         <a href="#download">Скачивание</a>
@@ -150,8 +151,15 @@
   -F "voice_gender=female" \
   -F "voice_age=32" \
   -F "video=@/path/to/video.mp4"</div>
-        <p>Обязательные поля: <code>project_name</code>, <code>source_language</code>, <code>target_language</code>, <code>video</code>.</p>
-        <p>Форматы: MP4, MKV, MOV, AVI, WebM, WAV, MP3, M4A. Максимум 500 МБ.</p>
+        <p>Обязательные поля: <code>project_name</code>, <code>source_language</code>, <code>target_language</code>, и <code>video</code> <em>или</em> <code>video_url</code>.</p>
+        <p>Форматы: MP4, MKV, MOV, AVI, WebM, WAV, MP3, M4A. Максимум {{ max_upload_mb }} МБ.</p>
+        <p><strong>Ссылка вместо файла</strong> (YouTube и др. через yt-dlp на стороне Dpunk):</p>
+        <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
+  -H "X-API-Key: dpk_ваш_ключ" \
+  -F "project_name=demo" \
+  -F "source_language=en" \
+  -F "target_language=ru" \
+  -F "video_url=https://www.youtube.com/watch?v=VIDEO_ID"</div>
         <p>Ответ при успехе: <strong>HTTP 202</strong> с полем <code>id</code> — сохраните его для опроса.</p>
     </section>
 
@@ -166,6 +174,9 @@
             <tr><td><code>voice_design_by_key</code></td><td>JSON: промпт по полу и возрастной группе</td></tr>
             <tr><td><code>dub_volume_percent</code></td><td>Громкость дубляжа, % (по умолчанию 100)</td></tr>
             <tr><td><code>original_audio_ratio</code></td><td>Доля оригинала (0–1, по умолчанию 0.3)</td></tr>
+            <tr><td><code>video_url</code></td><td>Ссылка на медиа (YouTube и др.) вместо файла — скачивается через yt-dlp</td></tr>
+            <tr><td><code>cast_voice</code></td><td>Один встроенный голос: loki / tom_hardy / thor (или Локи / Том Харди / Тор)</td></tr>
+            <tr><td><code>cast_mode</code></td><td>speakers — три голоса раздаются спикерам по кругу</td></tr>
         </table>
         <p>Плейсхолдеры в <code>voice_prompt</code>: <code>{lang}</code>, <code>{gender_hint}</code>, <code>{age_hint}</code></p>
     </section>
@@ -193,13 +204,50 @@
   -F "voice_sample_male_ref_text=Hello, this is my reference voice." \
   -F "video=@video.mp4"</div>
         <div class="docs-callout">
-            Через прокси Vandum недоступна передача <code>video_path</code> и серверных путей в JSON —
+            Через прокси недоступна передача <code>video_path</code> и серверных путей в JSON —
             только загрузка файлов через multipart.
         </div>
     </section>
 
+    <section class="docs-section" id="cast">
+        <h2>6. Встроенные cast-голоса</h2>
+        <p>На сервере лежат 3 готовых эталона. Их не нужно загружать файлом — укажите id или имя.</p>
+        <table class="docs-table glass-card">
+            <tr><th>id</th><th>Имя</th></tr>
+            <tr><td><code>loki</code></td><td>Локи</td></tr>
+            <tr><td><code>tom_hardy</code></td><td>Том Харди</td></tr>
+            <tr><td><code>thor</code></td><td>Тор</td></tr>
+        </table>
+        <div class="docs-endpoint">
+            <span class="docs-method">GET</span>
+            <span class="docs-path">/api/v1/cast-voices</span>
+        </div>
+        <div class="docs-code">curl -H "X-API-Key: dpk_ваш_ключ" \
+  "{{ api_base_url }}/api/v1/cast-voices"</div>
+        <p>Два режима (взаимоисключающие):</p>
+        <ul>
+            <li><code>cast_voice=loki</code> — один голос на весь дубляж</li>
+            <li><code>cast_mode=speakers</code> — SPEAKER_00→Локи, SPEAKER_01→Том Харди, SPEAKER_02→Тор, …</li>
+        </ul>
+        <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
+  -H "X-API-Key: dpk_ваш_ключ" \
+  -F "project_name=demo" \
+  -F "source_language=en" \
+  -F "target_language=ru" \
+  -F "cast_voice=loki" \
+  -F "video=@video.mp4"</div>
+        <div class="docs-code">curl -X POST "{{ api_base_url }}/api/v1/dub" \
+  -H "X-API-Key: dpk_ваш_ключ" \
+  -F "project_name=demo" \
+  -F "source_language=en" \
+  -F "target_language=ru" \
+  -F "cast_mode=speakers" \
+  -F "video=@video.mp4"</div>
+        <p>Свои <code>voice_sample_*</code> по-прежнему доступны и имеют приоритет на пересекающихся слотах.</p>
+    </section>
+
     <section class="docs-section" id="silero">
-        <h2>6. Silero TTS — готовые русские голоса</h2>
+        <h2>7. Silero TTS — готовые русские голоса</h2>
         <p>Альтернатива Qwen3-TTS для русского дубляжа: фиксированные спикеры Silero v5_ru (быстрее, меньше нагрузка на GPU).</p>
         <div class="docs-callout">
             Работает <strong>только</strong> при <code>target_language = ru</code>. Для других языков параметры <code>silero_*</code> вернут ошибку 400.
@@ -232,7 +280,7 @@
     </section>
 
     <section class="docs-section" id="jobs">
-        <h2>7. Статус и список задач</h2>
+        <h2>8. Статус и список задач</h2>
         <div class="docs-endpoint">
             <span class="docs-method">GET</span>
             <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;</span>
@@ -248,7 +296,7 @@
     </section>
 
     <section class="docs-section" id="download">
-        <h2>8. Скачивание результата</h2>
+        <h2>9. Скачивание результата</h2>
         <div class="docs-endpoint">
             <span class="docs-method">GET</span>
             <span class="docs-path">/api/v1/jobs/&lt;job_id&gt;/download</span>
@@ -260,7 +308,7 @@
     </section>
 
     <section class="docs-section" id="errors">
-        <h2>9. Коды ответов</h2>
+        <h2>10. Коды ответов</h2>
         <table class="docs-table glass-card">
             <tr><th>Код</th><th>Значение</th></tr>
             <tr><td>200</td><td>OK — GET, скачивание</td></tr>
@@ -275,7 +323,7 @@
     </section>
 
     <section class="docs-section" id="python">
-        <h2>10. Пример на Python</h2>
+        <h2>11. Пример на Python</h2>
         <p>Полный сценарий: запуск дубляжа с клонированием голоса, ожидание и скачивание MP4.</p>
 
         <div class="docs-py-block">
@@ -338,6 +386,25 @@ job_id = r.<span class="fn">json</span>()[<span class="str">"id"</span>]
         </div>
 
         <div class="docs-py-block">
+            <div class="docs-py-label">Шаг 1 — вариант C: cast_mode=speakers</div>
+            <pre class="docs-code docs-py"><code><span class="kw">with</span> <span class="fn">open</span>(<span class="str">"video.mp4"</span>, <span class="str">"rb"</span>) <span class="kw">as</span> video:
+    r = requests.<span class="fn">post</span>(
+        <span class="str">f"{BASE}/api/v1/dub"</span>,
+        headers=HEADERS,
+        data={
+            <span class="str">"project_name"</span>: <span class="str">"demo"</span>,
+            <span class="str">"source_language"</span>: <span class="str">"en"</span>,
+            <span class="str">"target_language"</span>: <span class="str">"ru"</span>,
+            <span class="str">"cast_mode"</span>: <span class="str">"speakers"</span>,
+        },
+        files={<span class="str">"video"</span>: (<span class="str">"video.mp4"</span>, video, <span class="str">"video/mp4"</span>)},
+        timeout=<span class="num">600</span>,
+    )
+r.<span class="fn">raise_for_status</span>()
+job_id = r.<span class="fn">json</span>()[<span class="str">"id"</span>]</code></pre>
+        </div>
+
+        <div class="docs-py-block">
             <div class="docs-py-label">Шаг 2 — Ожидание завершения</div>
             <pre class="docs-code docs-py"><code><span class="kw">while</span> <span class="kw">True</span>:
     st = requests.<span class="fn">get</span>(
@@ -378,7 +445,7 @@ out.<span class="fn">raise_for_status</span>()
     </section>
 
     <section class="docs-section" id="keys">
-        <h2>11. Управление ключами</h2>
+        <h2>12. Управление ключами</h2>
         <p>Ключи создаются в личном кабинете. Каждый ключ показывается один раз при генерации.</p>
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('api_portal.index') }}" class="btn btn-primary btn-glow">Перейти к API ключам</a>

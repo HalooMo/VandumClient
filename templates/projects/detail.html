@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ project.project_name }}{% endblock %}
 
+{% block head %}
+{% if project.status == 'done' and project.job_id %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/plyr/plyr.css') }}">
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="page-header">
     <div class="page-header-row">
@@ -11,6 +17,31 @@
         <span class="status-badge status-{{ project.status }} status-lg" id="statusBadge">{{ status_label(project.status, detail=true) }}</span>
     </div>
 </section>
+
+{% if project.status == 'done' and project.job_id %}
+<section class="result-player-section" id="resultPlayerSection">
+    <div class="glass-card result-player-card">
+        <div class="result-player-head">
+            <h3>Результат дубляжа</h3>
+            <span class="result-player-tag">preview</span>
+        </div>
+        <div class="result-plyr-wrap">
+            <video
+                id="resultPlyr"
+                playsinline
+                controls
+                preload="metadata"
+            >
+                <source src="{{ url_for('projects.stream', project_id=project.id) }}" type="video/mp4">
+            </video>
+        </div>
+        <div class="result-player-actions">
+            <a href="{{ url_for('projects.download', project_id=project.id) }}" class="btn btn-primary btn-glow">⬇ Скачать MP4</a>
+            <a href="{{ url_for('projects.edit', project_id=project.id) }}" class="btn btn-ghost">✎ Перезапустить</a>
+        </div>
+    </div>
+</section>
+{% endif %}
 
 <div class="detail-grid">
     <div class="glass-card detail-card">
@@ -40,6 +71,8 @@
             <a href="{{ url_for('projects.edit', project_id=project.id) }}" class="btn btn-ghost btn-block" style="margin-top:0.5rem">
                 ✎ Редактировать и перезапустить
             </a>
+        {% elif project.status not in ('error',) and project.status != 'done' %}
+            <p class="form-hint" style="text-align:center;margin-top:1rem">Плеер появится, когда дубляж будет готов.</p>
         {% endif %}
     </div>
 
@@ -50,6 +83,9 @@
             <dt>Создан</dt><dd>{{ project.created_at.strftime('%d.%m.%Y %H:%M') }}</dd>
             {% if project.finished_at %}
                 <dt>Завершён</dt><dd>{{ project.finished_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+            {% endif %}
+            {% if voice_opts.get('video_url') %}
+                <dt>Источник URL</dt><dd><code>{{ voice_opts.video_url }}</code></dd>
             {% endif %}
             {% if project.voice_gender %}
                 <dt>Пол голоса</dt><dd>{{ project.voice_gender }}</dd>
@@ -62,6 +98,11 @@
             {% endif %}
             {% if voice_opts.get('voice_design_temperature') %}
                 <dt>TTS temp</dt><dd>{{ voice_opts.voice_design_temperature }}</dd>
+            {% endif %}
+            {% if voice_opts.get('cast_mode') == 'speakers' %}
+                <dt>Cast</dt><dd>speakers (Локи / Том Харди / Тор по кругу)</dd>
+            {% elif voice_opts.get('cast_voice') %}
+                <dt>Cast</dt><dd>{{ voice_opts.cast_voice }}</dd>
             {% endif %}
             {% if voice_opts.get('silero_speaker') %}
                 <dt>Silero</dt>
@@ -90,4 +131,8 @@ const PROJECT_ID = {{ project.id }};
 const INITIAL_STATUS = "{{ project.status }}";
 </script>
 <script src="{{ url_for('static', filename='js/project-status.js') }}"></script>
+{% if project.status == 'done' and project.job_id %}
+<script src="{{ url_for('static', filename='vendor/plyr/plyr.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/result-player.js') }}"></script>
+{% endif %}
 {% endblock %}
