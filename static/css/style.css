@@ -173,11 +173,18 @@ body {
     transition: var(--transition);
 }
 
+/* Content below fixed nav */
+.site-content {
+    position: relative;
+    z-index: 1;
+    padding-top: var(--nav-h);
+}
+
 /* Main */
 .main {
     position: relative;
     z-index: 1;
-    padding-top: var(--nav-h);
+    padding-top: 0;
     min-height: calc(100vh - 200px);
 }
 
@@ -1004,6 +1011,100 @@ code {
     border-bottom: 1px solid rgba(255, 208, 0, 0.2);
     font-size: 0.85rem;
     color: var(--yellow);
+}
+
+/* Maintenance / access-request banner */
+.maintenance-banner {
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 90;
+    border-bottom: 1px solid rgba(255, 180, 40, 0.45);
+    background: linear-gradient(90deg, rgba(90, 55, 0, 0.95), rgba(40, 25, 0, 0.98));
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.maintenance-banner-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem 1.25rem;
+}
+.maintenance-banner-text {
+    margin: 0;
+    flex: 1 1 320px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #ffe7b0;
+}
+.maintenance-request-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+.maintenance-email {
+    min-width: 200px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 200, 80, 0.45);
+    background: rgba(0, 0, 0, 0.45);
+    color: var(--text);
+    font-size: 0.85rem;
+}
+.admin-maintenance-card,
+.admin-table-wrap {
+    margin-bottom: 1.5rem;
+}
+.admin-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+.admin-section-title {
+    margin: 0;
+    font-size: 1.15rem;
+}
+.admin-section-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 1rem;
+    line-height: 1.45;
+}
+.admin-maintenance-form .form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+.admin-maintenance-form .form-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+.admin-maintenance-form .form-control {
+    width: 100%;
+    margin-bottom: 0.85rem;
+}
+.admin-maintenance-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.admin-hide-banner-form {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+.admin-empty {
+    color: var(--text-muted);
+    margin: 0;
 }
 
 /* Footer */

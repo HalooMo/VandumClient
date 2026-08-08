@@ -117,3 +117,18 @@ class AdminUserForm(FlaskForm):
     email_verified = BooleanField("Email подтверждён")
     new_password = PasswordField("Новый пароль", validators=[Optional(), Length(min=8)])
     submit = SubmitField("Сохранить")
+
+
+class AccessRequestForm(FlaskForm):
+    email = EmailField("Email", validators=[Optional(), Email(), Length(max=255)])
+    note = StringField("Комментарий", validators=[Optional(), Length(max=500)])
+    submit = SubmitField("Запрос на использование")
+
+
+class AdminMaintenanceForm(FlaskForm):
+    maintenance_banner = BooleanField("Показывать предупреждение о доработке на сайте")
+    maintenance_message = TextAreaField(
+        "Текст предупреждения",
+        validators=[DataRequired(), Length(min=10, max=2000)],
+    )
+    submit = SubmitField("Сохранить настройки")

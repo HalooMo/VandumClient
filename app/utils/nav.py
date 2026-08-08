@@ -14,7 +14,13 @@ NAV_ACTIVE_MAP = {
         "projects.status_batch",
     }),
     "dashboard": frozenset({"dashboard.index"}),
-    "admin": frozenset({"admin.index", "admin.edit_user"}),
+    "admin": frozenset({
+        "admin.index",
+        "admin.edit_user",
+        "admin.update_maintenance",
+        "admin.hide_maintenance",
+        "admin.resolve_access_request",
+    }),
 }
 
 

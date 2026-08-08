@@ -75,9 +75,18 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_globals():
+        from app.forms import AccessRequestForm
+        from app.models import SiteSetting
         from app.utils.nav import nav_is_active
         from app.utils.security import dev_verify_code_visible
         from app.utils.status import is_active, status_label
+
+        try:
+            site_settings = SiteSetting.get_or_create()
+        except Exception:
+            app.logger.exception("Failed to load site_settings for maintenance banner")
+            site_settings = None
+
         return {
             "now": datetime.now,
             "status_label": status_label,
@@ -86,6 +95,8 @@ def create_app(config_class=Config):
             "app_url": app.config.get("APP_URL", "").rstrip("/") or "http://localhost:5000",
             "dev_verify_code_visible": dev_verify_code_visible,
             "max_upload_mb": app.config.get("SPEECHLAB_MAX_UPLOAD_MB", 150),
+            "site_settings": site_settings,
+            "access_request_form": AccessRequestForm(),
         }
 
     with app.app_context():

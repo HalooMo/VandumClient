@@ -23,9 +23,101 @@
         <div class="stat-value">{{ stats.running_projects }}</div>
         <div class="stat-label">В обработке</div>
     </div>
+    <div class="stat-card glass-card">
+        <div class="stat-value">{{ stats.pending_access_requests }}</div>
+        <div class="stat-label">Запросов на доступ</div>
+    </div>
 </div>
 
+<section class="glass-card admin-maintenance-card">
+    <div class="admin-section-head">
+        <h2 class="admin-section-title">Доработка сайта</h2>
+        {% if settings.maintenance_banner %}
+            <span class="tag tag-yellow">баннер включён</span>
+        {% else %}
+            <span class="tag tag-green">баннер скрыт</span>
+        {% endif %}
+    </div>
+    <p class="admin-section-desc">
+        Когда баннер включён, на всех страницах показывается предупреждение и кнопка
+        «Запрос на использование». После запроса решите, возобновлять ли работу, и нажмите
+        «Скрыть предупреждение».
+    </p>
+
+    <form method="POST" action="{{ url_for('admin.update_maintenance') }}" class="admin-maintenance-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-check">
+            {{ maintenance_form.maintenance_banner() }}
+            <span>{{ maintenance_form.maintenance_banner.label.text }}</span>
+        </label>
+        <label class="form-label">{{ maintenance_form.maintenance_message.label.text }}</label>
+        {{ maintenance_form.maintenance_message(class_="form-control", rows="3") }}
+        <div class="admin-maintenance-actions">
+            <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+        </div>
+    </form>
+
+    {% if settings.maintenance_banner %}
+    <form method="POST" action="{{ url_for('admin.hide_maintenance') }}" class="admin-hide-banner-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-glow">
+            Скрыть предупреждение (возобновить сайт)
+        </button>
+    </form>
+    {% endif %}
+</section>
+
+<section class="glass-card admin-table-wrap">
+    <div class="admin-section-head">
+        <h2 class="admin-section-title">Запросы на использование</h2>
+    </div>
+    {% if access_requests %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Когда</th>
+                <th>Email</th>
+                <th>Имя</th>
+                <th>Комментарий</th>
+                <th>Статус</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in access_requests %}
+            <tr>
+                <td>{{ r.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td>{{ r.email }}</td>
+                <td>{{ r.name or '—' }}</td>
+                <td>{{ r.note or '—' }}</td>
+                <td>
+                    {% if r.status == 'pending' %}
+                        <span class="tag tag-yellow">ожидает</span>
+                    {% else %}
+                        <span class="tag tag-green">обработан</span>
+                    {% endif %}
+                </td>
+                <td class="actions-cell">
+                    {% if r.status == 'pending' %}
+                    <form method="POST" action="{{ url_for('admin.resolve_access_request', req_id=r.id) }}" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-ghost btn-sm">Отметить</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="admin-empty">Запросов пока нет.</p>
+    {% endif %}
+</section>
+
 <div class="glass-card admin-table-wrap">
+    <div class="admin-section-head">
+        <h2 class="admin-section-title">Пользователи</h2>
+    </div>
     <table class="admin-table">
         <thead>
             <tr>

@@ -162,3 +162,49 @@ class DubUsage(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     source = db.Column(db.String(16), nullable=False, default="web")
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+DEFAULT_MAINTENANCE_MESSAGE = (
+    "В данный момент сайт на доработке. Для использования нажмите кнопку "
+    "«Запрос на использование» — в течение 20 минут мы возобновим работу сервера."
+)
+
+
+class SiteSetting(db.Model):
+    """Singleton row for site-wide flags (id is always 1)."""
+    __tablename__ = "site_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    maintenance_banner = db.Column(db.Boolean, default=False, nullable=False)
+    maintenance_message = db.Column(db.Text, nullable=False, default=DEFAULT_MAINTENANCE_MESSAGE)
+    updated_at = db.Column(db.DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    @classmethod
+    def get_or_create(cls):
+        row = db.session.get(cls, 1)
+        if row:
+            return row
+        row = cls(
+            id=1,
+            maintenance_banner=False,
+            maintenance_message=DEFAULT_MAINTENANCE_MESSAGE,
+        )
+        db.session.add(row)
+        db.session.commit()
+        return row
+
+
+class AccessRequest(db.Model):
+    """User asks admin to resume service while maintenance banner is shown."""
+    __tablename__ = "access_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    name = db.Column(db.String(120))
+    note = db.Column(db.String(500))
+    status = db.Column(db.String(32), default="pending", nullable=False, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    resolved_at = db.Column(db.DateTime(timezone=True))
+
+    user = db.relationship("User", backref=db.backref("access_requests", lazy="dynamic"))

@@ -74,6 +74,7 @@
         </button>
     </nav>
 
+    <div class="site-content{{ ' has-maintenance' if site_settings and site_settings.maintenance_banner else '' }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flash-container">
@@ -86,6 +87,21 @@
             </div>
         {% endif %}
     {% endwith %}
+
+    {% if site_settings and site_settings.maintenance_banner %}
+        <div class="maintenance-banner" role="status">
+            <div class="maintenance-banner-inner">
+                <p class="maintenance-banner-text">{{ site_settings.maintenance_message }}</p>
+                <form method="POST" action="{{ url_for('main.access_request') }}" class="maintenance-request-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% if not current_user.is_authenticated %}
+                        <input type="email" name="email" class="maintenance-email" placeholder="Ваш email" required maxlength="255" autocomplete="email">
+                    {% endif %}
+                    <button type="submit" name="submit" value="1" class="btn btn-primary btn-sm btn-glow">Запрос на использование</button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
 
     {% if current_user.is_authenticated and not current_user.email_verified %}
         <div class="verify-banner">
@@ -140,6 +156,7 @@
             </div>
         </div>
     </footer>
+    </div>
 
     <script src="{{ url_for('static', filename='js/particles.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
