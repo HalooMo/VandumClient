@@ -99,4 +99,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })
         .catch(() => {});
+
+    // Cookie notice — first visit only
+    const COOKIE_KEY = 'dpunk_cookie_ok';
+    const notice = document.getElementById('cookieNotice');
+    const acceptBtn = document.getElementById('cookieAccept');
+
+    const hasConsent = () => {
+        try {
+            if (localStorage.getItem(COOKIE_KEY) === '1') return true;
+        } catch (_) { /* private mode */ }
+        return document.cookie.split(';').some((c) => c.trim().startsWith(COOKIE_KEY + '='));
+    };
+
+    const saveConsent = () => {
+        try { localStorage.setItem(COOKIE_KEY, '1'); } catch (_) { /* ignore */ }
+        const maxAge = 60 * 60 * 24 * 365;
+        const secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${COOKIE_KEY}=1; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
+    };
+
+    const hideNotice = () => {
+        if (!notice) return;
+        notice.classList.add('is-leaving');
+        setTimeout(() => {
+            notice.hidden = true;
+            notice.classList.remove('is-visible', 'is-leaving');
+        }, 420);
+    };
+
+    if (notice && acceptBtn && !hasConsent()) {
+        notice.hidden = false;
+        requestAnimationFrame(() => notice.classList.add('is-visible'));
+        acceptBtn.addEventListener('click', () => {
+            saveConsent();
+            hideNotice();
+        });
+    }
 });

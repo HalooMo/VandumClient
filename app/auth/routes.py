@@ -41,7 +41,9 @@ def login():
                 flash("Аккаунт заблокирован. Обратитесь к администратору.", "error")
                 return render_template("auth/login.html", form=form)
 
-            login_user(user, remember=form.remember.data)
+            remember = bool(form.remember.data)
+            login_user(user, remember=remember)
+            session.permanent = True
             user.last_login = datetime.now(timezone.utc)
             db.session.commit()
             record_login(user)
@@ -76,7 +78,8 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        login_user(user)
+        login_user(user, remember=True)
+        session.permanent = True
         record_login(user)
 
         result = send_verification_email(user)
@@ -157,7 +160,8 @@ def verify_email(token):
         flash("Email успешно подтверждён! Добро пожаловать в Dpunk.", "success")
 
     if not current_user.is_authenticated:
-        login_user(user)
+        login_user(user, remember=True)
+        session.permanent = True
         record_login(user)
 
     return redirect(url_for("projects.create"))
@@ -221,7 +225,8 @@ def google_callback():
             db.session.add(user)
 
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
+        session.permanent = True
         user.last_login = datetime.now(timezone.utc)
         db.session.commit()
         record_login(user)
@@ -265,4 +270,4 @@ def resend_verification():
         flash("Не удалось отправить письмо. Попробуйте позже.", "error")
 
     return redirect(url_for("auth.verify_pending"))
-
+

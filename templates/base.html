@@ -158,6 +158,24 @@
     </footer>
     </div>
 
+    <aside id="cookieNotice" class="cookie-notice" hidden aria-live="polite" aria-label="Уведомление о cookies">
+        <div class="cookie-notice-glow" aria-hidden="true"></div>
+        <div class="cookie-notice-orbit" aria-hidden="true">
+            <span class="cookie-chip cookie-chip-a"></span>
+            <span class="cookie-chip cookie-chip-b"></span>
+            <span class="cookie-chip cookie-chip-c"></span>
+        </div>
+        <div class="cookie-notice-body">
+            <p class="cookie-notice-title">На сайте используются файлы cookie</p>
+            <p class="cookie-notice-text">
+                Это нужно для стабильной работы сервиса.
+            </p>
+            <div class="cookie-notice-actions">
+                <button type="button" class="cookie-btn-accept" id="cookieAccept">Понятно, продолжаем</button>
+            </div>
+        </div>
+    </aside>
+
     <script src="{{ url_for('static', filename='js/particles.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}

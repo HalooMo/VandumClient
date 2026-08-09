@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -36,13 +37,21 @@ class Config:
 
     _is_secure = _scheme == "https" and _host not in ("localhost", "127.0.0.1")
 
-    # CSRF / sessions
+    # CSRF / sessions — stay signed in across visits (~30 days)
     WTF_CSRF_SSL_STRICT = _is_secure
+    SESSION_COOKIE_NAME = "dpunk_session"
     SESSION_COOKIE_SECURE = _is_secure
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
+    SESSION_REFRESH_EACH_REQUEST = True
+
+    REMEMBER_COOKIE_NAME = "dpunk_remember"
     REMEMBER_COOKIE_SECURE = _is_secure
     REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_DURATION = timedelta(days=30)
+    REMEMBER_COOKIE_REFRESH_EACH_REQUEST = True
 
     # Dev-only: show verification code on screen when SMTP fails
     DEV_SHOW_VERIFY_CODE = os.environ.get("DEV_SHOW_VERIFY_CODE", "").lower() in ("1", "true", "yes")
