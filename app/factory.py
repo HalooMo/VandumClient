@@ -25,6 +25,7 @@ def create_app(config_class=Config):
     )
     app.config.from_object(config_class)
     _refresh_env_config(app)
+    _configure_logging(app)
     _validate_production_secrets(app)
 
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
@@ -210,6 +211,47 @@ def _refresh_env_config(app):
         app.logger.info("SpeechLab API key loaded (%d chars)", len(app.config["SPEECHLAB_API_KEY"]))
     else:
         app.logger.warning("SPEECHLAB_API_KEY is missing — dubbing will fail with 401")
+
+    if app.config.get("GPU_POWER_ENABLED"):
+        app.logger.info(
+            "GPU power enabled: server_id=%s idle_sec=%s",
+            app.config.get("GPU_SERVER_ID") or "(missing)",
+            app.config.get("GPU_IDLE_SEC", 60),
+        )
+    else:
+        app.logger.info("GPU power disabled (GPU_POWER_ENABLED=false)")
+
+
+def _configure_logging(app):
+    """Ensure app.* INFO logs reach gunicorn/journald (not only WARNING)."""
+    import logging
+    import sys
+
+    level_name = (os.environ.get("LOG_LEVEL") or "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+
+    root = logging.getLogger()
+    root.setLevel(level)
+
+    fmt = logging.Formatter("[%(asctime)s] %(levelname)s in %(name)s: %(message)s")
+    has_stream = any(isinstance(h, logging.StreamHandler) for h in root.handlers)
+    if not has_stream:
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(fmt)
+        handler.setLevel(level)
+        root.addHandler(handler)
+    else:
+        for handler in root.handlers:
+            handler.setLevel(min(handler.level or level, level) if handler.level else level)
+            if not handler.formatter:
+                handler.setFormatter(fmt)
+
+    logging.getLogger("app").setLevel(level)
+    # Keep noisy libs quieter
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+
+    app.logger.setLevel(level)
 
 
 def _ensure_schema():
