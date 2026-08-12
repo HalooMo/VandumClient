@@ -9,6 +9,7 @@ from flask_limiter.util import get_remote_address
 from app.api_proxy.auth import require_api_key
 from app.extensions import db, limiter
 from app.models import ApiJob
+from app.services.gpu_power import GpuPowerError, ensure_gpu_awake, schedule_gpu_idle_shelve
 from app.services.media_download import MediaDownloadError, download_media_url, validate_media_url
 from app.services.quotas import check_dub_quota, dub_quota_remaining, record_dub_usage
 from app.services.speechlab import SpeechLabClient
@@ -96,6 +97,8 @@ def _sync_job_record(record, upstream):
     if upstream.get("status") == "done":
         record.finished_at = datetime.now(timezone.utc)
     db.session.commit()
+    if record.status in ("done", "error"):
+        schedule_gpu_idle_shelve()
 
 
 @api_proxy_bp.route("/health")
@@ -143,6 +146,11 @@ def create_dub(api_key):
     temp_dir = None
 
     try:
+        try:
+            ensure_gpu_awake()
+        except GpuPowerError as exc:
+            return _json_error(f"Inference server waking/unavailable: {exc}", 503)
+
         if request.content_type and "multipart/form-data" in request.content_type:
             video = request.files.get("video")
             video_url = (request.form.get("video_url") or "").strip()
@@ -292,7 +300,13 @@ def download_job(api_key, job_id):
         return _json_error("Задача не найдена", 404)
 
     try:
+        try:
+            ensure_gpu_awake()
+        except GpuPowerError as exc:
+            return _json_error(f"Inference server waking/unavailable: {exc}", 503)
+
         resp = SpeechLabClient().download_job(job_id)
+        schedule_gpu_idle_shelve()
 
         if resp.status_code != 200:
             return _proxy_response(resp)

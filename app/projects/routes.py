@@ -19,6 +19,7 @@ from app.decorators import verified_required
 from app.extensions import db
 from app.forms import CreateProjectForm
 from app.models import Project
+from app.services.gpu_power import GpuPowerError, ensure_gpu_awake, schedule_gpu_idle_shelve
 from app.services.media_download import validate_media_url
 from app.services.project_worker import start_background_upload
 from app.services.quotas import check_dub_quota, dub_quota_remaining, record_dub_usage
@@ -262,6 +263,11 @@ def status_batch():
         })
 
     db.session.commit()
+    if any(r["status"] in ("done", "error") for r in results):
+        if not Project.query.filter(
+            Project.status.in_(list(ACTIVE_STATUSES))
+        ).count():
+            schedule_gpu_idle_shelve()
     return jsonify({"projects": results})
 
 
@@ -355,6 +361,8 @@ def status_api(project_id):
             if data.get("status") == "done":
                 project.finished_at = datetime.now(timezone.utc)
             db.session.commit()
+            if project.status in ("done", "error"):
+                schedule_gpu_idle_shelve()
             data["status_label"] = status_label(project.status)
             return jsonify(data)
     except Exception as e:
@@ -399,8 +407,18 @@ def _proxy_result_media(project_id, disposition="attachment"):
         if range_header:
             extra["Range"] = range_header
 
+        try:
+            ensure_gpu_awake()
+        except GpuPowerError as exc:
+            current_app.logger.warning("GPU wake for download failed: %s", exc)
+            if disposition == "inline":
+                return Response("Сервер просыпается, повторите через минуту", status=503)
+            flash("Сервер просыпается. Повторите скачивание через минуту.", "warning")
+            return redirect(url_for("projects.detail", project_id=project.id))
+
         client = SpeechLabClient()
         resp = client.download_job(project.job_id, extra_headers=extra or None)
+        schedule_gpu_idle_shelve()
         if resp.status_code not in (200, 206):
             if disposition == "inline":
                 return Response("Не удалось загрузить видео", status=502)

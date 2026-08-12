@@ -4,9 +4,11 @@ from pathlib import Path
 
 from app.extensions import db
 from app.models import Project
+from app.services.gpu_power import GpuPowerError, ensure_gpu_awake, schedule_gpu_idle_shelve
 from app.services.media_download import MediaDownloadError, download_media_url
 from app.services.speechlab import SpeechLabClient
 from app.utils.dub_params import close_file_handles, collect_multipart_files_from_paths
+
 
 logger = logging.getLogger(__name__)
 
@@ -80,17 +82,27 @@ def _upload_project(app, project_id, file_paths, payload, video_url=None, sessio
                 db.session.commit()
                 return
 
+            ensure_gpu_awake()
             client = SpeechLabClient()
             resp = client.create_dub(payload, files=files)
             _apply_response(project, resp)
+            if project.status in ("error", "done"):
+                schedule_gpu_idle_shelve()
         except MediaDownloadError as exc:
             logger.warning("Media download failed for project %s: %s", project_id, exc)
             project.status = "error"
             project.error_message = str(exc)
+            schedule_gpu_idle_shelve()
+        except GpuPowerError as exc:
+            logger.warning("GPU wake failed for project %s: %s", project_id, exc)
+            project.status = "error"
+            project.error_message = f"Сервер просыпается / недоступен: {exc}"
+            schedule_gpu_idle_shelve()
         except Exception as exc:
             logger.exception("Background upload failed for project %s", project_id)
             project.status = "error"
             project.error_message = str(exc)
+            schedule_gpu_idle_shelve()
         finally:
             close_file_handles(files)
             db.session.commit()

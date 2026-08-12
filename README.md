@@ -51,6 +51,9 @@ docker compose up -d --build
 | `YTDLP_TIMEOUT_SEC` | Таймаут сокетов/ожидания скачивания (сек) |
 | `YTDLP_MAX_DURATION_SEC` | Макс. длина ролика в секундах (0 = без лимита) |
 | `SPEECHLAB_MAX_UPLOAD_MB` | Лимит размера файла после скачивания / upload |
+| `GPU_POWER_ENABLED` | Авто-unshelve GPU перед dub (`true`/`false`) |
+| `GPU_SERVER_ID` | UUID облачного сервера SpeechLab в Selectel |
+| `OS_*` | Креды OpenStack (сервисный пользователь Selectel) |
 
 ### URL через yt-dlp
 
@@ -88,9 +91,22 @@ app/
   projects/   — создание и управление проектами
   admin/      — админ-панель
   dashboard/  — аналитика
-  services/   — SpeechLab API client, email, analytics
+  services/   — SpeechLab API client, GPU power, email, analytics
+scripts/      — CLI: gpu_power.py (status / unshelve / shelve)
 templates/    — Jinja2 шаблоны
 static/       — CSS, JS
+```
+
+## GPU power (Selectel)
+
+Если inference-сервер в Selectel замораживается (`shelve`), включите `GPU_POWER_ENABLED=true` и заполните `GPU_SERVER_ID` + `OS_*`. Перед отправкой задачи в SpeechLab клиент сделает unshelve и дождётся `/health`. После завершения всех задач и простоя `GPU_IDLE_SEC` (по умолчанию 60 с) сервер автоматически замораживается.
+
+Вручную:
+
+```bash
+python scripts/gpu_power.py status
+python scripts/gpu_power.py unshelve   # разморозить + ждать /health
+python scripts/gpu_power.py shelve     # заморозить (экономия GPU)
 ```
 
 ## API интеграция

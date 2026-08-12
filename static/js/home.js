@@ -258,12 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(d => {
                 const u = document.getElementById('liveUsers');
                 const p = document.getElementById('liveProjects');
-                const s = document.getElementById('liveServer');
-                const f = document.getElementById('footerStatus');
                 if (u) u.textContent = d.users;
                 if (p) p.textContent = d.projects_done;
-                if (s) s.textContent = d.server?.status || 'offline';
-                if (f) f.innerHTML = `<span class="pulse-dot"></span> ${d.server?.status === 'ok' ? 'Online' : 'Offline'} · ${d.projects} projects`;
             })
             .catch(() => {});
     };

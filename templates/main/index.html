@@ -5,23 +5,7 @@
 <!-- HERO -->
 <section class="hero-v2">
     <div class="hero-v2-content">
-        <div class="hero-chip-row" data-animate="fade-up">
-            <div class="hero-chip">
-                <span class="pulse-dot {% if server_status.status != 'ok' %}offline{% endif %}"></span>
-                {% if server_status.status == 'ok' %}
-                    GPU Pipeline · {{ server_status.env|default('online')|upper }}
-                {% else %}
-                    Сервер недоступен
-                {% endif %}
-            </div>
-            {% if current_user.is_authenticated and server_status.active_job %}
-            <div class="hero-chip hero-chip-warn">
-                ⚡ Задача {{ server_status.active_job[:8] }}…
-            </div>
-            {% endif %}
-        </div>
-
-        <h1 class="hero-v2-title" data-animate="fade-up" data-delay="80">
+        <h1 class="hero-v2-title" data-animate="fade-up">
             <span class="hero-line">Загрузил.</span>
             <span class="hero-line gradient-text" id="typedTarget">Получил MP4.</span>
         </h1>
@@ -372,7 +356,6 @@
         <div class="cta-v2-stats" id="liveStats">
             <span><strong id="liveUsers">{{ stats.users }}</strong> users</span>
             <span><strong id="liveProjects">{{ stats.projects_done }}</strong> dubbed</span>
-            <span class="live-dot"><span class="pulse-dot"></span> <span id="liveServer">{{ server_status.status|default('offline') }}</span></span>
         </div>
     </div>
 </section>

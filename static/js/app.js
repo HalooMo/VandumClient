@@ -88,18 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('hashchange', syncSectionNav);
     }
 
-    // Footer status initial load
-    fetch('/api/public/stats')
-        .then(r => r.json())
-        .then(d => {
-            const f = document.getElementById('footerStatus');
-            if (f) {
-                const online = d.server?.status === 'ok';
-                f.innerHTML = `<span class="pulse-dot ${online ? '' : 'offline'}"></span> ${online ? 'Online' : 'Offline'} · ${d.projects} projects`;
-            }
-        })
-        .catch(() => {});
-
     // Cookie notice — first visit only
     const COOKIE_KEY = 'dpunk_cookie_ok';
     const notice = document.getElementById('cookieNotice');

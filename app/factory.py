@@ -161,6 +161,21 @@ def _refresh_env_config(app):
         "YTDLP_ENABLED",
         "YTDLP_TIMEOUT_SEC",
         "YTDLP_MAX_DURATION_SEC",
+        "GPU_POWER_ENABLED",
+        "GPU_SERVER_ID",
+        "GPU_WAKE_TIMEOUT_SEC",
+        "GPU_SHELVE_TIMEOUT_SEC",
+        "GPU_IDLE_SEC",
+        "GPU_HEALTH_POLL_SEC",
+        "GPU_STATUS_POLL_SEC",
+        "OS_AUTH_URL",
+        "OS_USERNAME",
+        "OS_PASSWORD",
+        "OS_USER_DOMAIN_NAME",
+        "OS_PROJECT_ID",
+        "OS_PROJECT_DOMAIN_NAME",
+        "OS_REGION_NAME",
+        "OS_IDENTITY_API_VERSION",
     )
     for key in env_keys:
         val = os.environ.get(key)
@@ -171,6 +186,11 @@ def _refresh_env_config(app):
                 "MAX_DUB_JOBS_PER_DAY",
                 "YTDLP_TIMEOUT_SEC",
                 "YTDLP_MAX_DURATION_SEC",
+                "GPU_WAKE_TIMEOUT_SEC",
+                "GPU_SHELVE_TIMEOUT_SEC",
+                "GPU_IDLE_SEC",
+                "GPU_HEALTH_POLL_SEC",
+                "GPU_STATUS_POLL_SEC",
             ):
                 app.config[key] = int(val)
             elif key in (
@@ -180,6 +200,7 @@ def _refresh_env_config(app):
                 "DEV_SHOW_VERIFY_CODE",
                 "ADMIN_RESET_PASSWORD",
                 "YTDLP_ENABLED",
+                "GPU_POWER_ENABLED",
             ):
                 app.config[key] = val.lower() in ("1", "true", "yes")
             else:

@@ -26,3 +26,5 @@ htmlcov/
 *.pem
 *.key
 secrets/
+.sh
+rc.sh

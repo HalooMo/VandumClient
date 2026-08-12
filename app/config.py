@@ -78,6 +78,23 @@ class Config:
     VOICE_SAMPLE_MAX_MB = int(os.environ.get("VOICE_SAMPLE_MAX_MB", "10"))
     MAX_CONTENT_LENGTH = (SPEECHLAB_MAX_UPLOAD_MB + VOICE_SAMPLE_MAX_MB * 2 + 5) * 1024 * 1024
 
+    # GPU power (Selectel OpenStack shelve/unshelve) — wake before dub when enabled
+    GPU_POWER_ENABLED = os.environ.get("GPU_POWER_ENABLED", "").lower() in ("1", "true", "yes")
+    GPU_SERVER_ID = os.environ.get("GPU_SERVER_ID", "")
+    GPU_WAKE_TIMEOUT_SEC = int(os.environ.get("GPU_WAKE_TIMEOUT_SEC", "300"))
+    GPU_SHELVE_TIMEOUT_SEC = int(os.environ.get("GPU_SHELVE_TIMEOUT_SEC", "300"))
+    GPU_IDLE_SEC = int(os.environ.get("GPU_IDLE_SEC", "60"))
+    GPU_HEALTH_POLL_SEC = int(os.environ.get("GPU_HEALTH_POLL_SEC", "5"))
+    GPU_STATUS_POLL_SEC = int(os.environ.get("GPU_STATUS_POLL_SEC", "5"))
+    OS_AUTH_URL = os.environ.get("OS_AUTH_URL", "https://cloud.api.selcloud.ru/identity/v3")
+    OS_USERNAME = os.environ.get("OS_USERNAME", "")
+    OS_PASSWORD = os.environ.get("OS_PASSWORD", "")
+    OS_USER_DOMAIN_NAME = os.environ.get("OS_USER_DOMAIN_NAME", "")
+    OS_PROJECT_ID = os.environ.get("OS_PROJECT_ID", "")
+    OS_PROJECT_DOMAIN_NAME = os.environ.get("OS_PROJECT_DOMAIN_NAME", "")
+    OS_REGION_NAME = os.environ.get("OS_REGION_NAME", "")
+    OS_IDENTITY_API_VERSION = os.environ.get("OS_IDENTITY_API_VERSION", "3")
+
     # yt-dlp: download media by URL (YouTube etc.) before forwarding to SpeechLab
     YTDLP_ENABLED = os.environ.get("YTDLP_ENABLED", "true").lower() in ("1", "true", "yes")
     YTDLP_TIMEOUT_SEC = int(os.environ.get("YTDLP_TIMEOUT_SEC", "600"))

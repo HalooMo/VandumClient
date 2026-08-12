@@ -140,19 +140,12 @@
                     <a href="{{ url_for('auth.login') }}">Вход</a>
                 {% endif %}
             </div>
-            <div class="footer-col">
-                <h4>Статус</h4>
-                <div class="footer-status" id="footerStatus">
-                    <span class="pulse-dot"></span> Загрузка...
-                </div>
-            </div>
         </div>
         <div class="footer-bottom">
             <p>&copy; {{ now().year if now is defined else '2026' }} Dpunk · Быстрый закадровый дубляж</p>
             <div class="footer-tech">
                 <span>Qwen3-TTS</span>
                 <span>VoiceDesign</span>
-                <span>GPU Pipeline</span>
             </div>
         </div>
     </footer>
